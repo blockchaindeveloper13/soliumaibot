@@ -250,7 +250,7 @@ def handle_violation(chat_id, user_id, message_id):
         violations[user_id] = 0
         save_violations()
     else:
-        text_to_send = f"⚠️ Uyarı ({violations[user_id]}/3): Kural ihlali!"
+        text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Please do not violate group rules!"
         logger.info("Uyarı mesajı gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
         # Mesajı sil
