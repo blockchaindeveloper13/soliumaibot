@@ -265,34 +265,41 @@ def handle_violation(chat_id, user_id, message_id):
     """İhlal işleme mekanizması (Rose Bot entegrasyonlu)"""
     global violations
     
+    # Violation count'ını artır
     violations[user_id] += 1
     save_violations()
 
-    # Mesajı sil
-    try:
-        delete_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
-        requests.post(delete_url, json={"chat_id": chat_id, "message_id": message_id})
-    except Exception as e:
-        logger.error(f"Mesaj silinemedi: {e}")
-
+    # Yanıt mesajını belirle
     if violations[user_id] >= 3:
-        # Rose Bot için kritik kısım: Orijinal mesajı yanıtlayarak ban komutu gönder
-        ban_command = {
-            "chat_id": chat_id,
-            "text": "/ban",
-            "reply_to_message_id": message_id  # Bu satır Rose Bot'un kullanıcıyı tanımasını sağlar
-        }
-        send_message(ban_command)
-        
-        # Ek bilgilendirme
-        send_message(chat_id, f"⛔ User banned after 3 violations")
+        text_to_send = "/ban"
+        additional_text = "⛔ User banned after 3 violations"
         violations[user_id] = 0
         save_violations()
     else:
-        # Uyarı mesajı
-        warn_msg = f"⚠️ Warning ({violations[user_id]}/3): Rule violation!"
-        send_message(chat_id, warn_msg)
+        text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Rule violation!"
 
+    # Yanıt mesajını gönder (her zaman orijinal mesaja yanıt olarak)
+    reply_payload = {
+        "chat_id": chat_id,
+        "text": text_to_send,
+        "reply_to_message_id": message_id
+    }
+    send_message(reply_payload)
+
+    # Ek mesaj varsa gönder (örneğin, ban mesajı için)
+    if additional_text:
+        additional_payload = {
+            "chat_id": chat_id,
+            "text": additional_text
+        }
+        send_message(additional_payload)
+
+    # Orijinal mesajı sil
+    try:
+        delete_url = f"[invalid url, do not cite]
+        requests.post(delete_url, json={"chat_id": chat_id, "message_id": message_id})
+    except Exception as e:
+        logger.error(f"Mesaj silinemedi: {e}")
 # --- Webhook endpoint ---
 @app.route('/webhook/<token>', methods=['POST'])
 def webhook(token):
