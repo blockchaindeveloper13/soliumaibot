@@ -264,9 +264,9 @@ def check_rules_violation(text):
 
     prompt = """Aşağıdaki mesaj bu kurallara aykırı mı? (Sadece EVET/HAYIR yaz):
     Kurallar:
-     1. Küfür, hakaret veya uygunsuz dil içeren mesajlar yasaktır.
-    2. https://soliumcoin.com gibi resmi linkler dışındaki harici linkler yasaktır.
-    3. Solium Coin dışında başka bir kripto paranın veya projenin reklamı yasaktır.
+    1. https://soliumcoin.com gibi resmi linkler dışındaki harici linkler yasaktır.
+    2. Solium Coin dışında başka bir kripto paranın veya projenin reklamı yasaktır.
+    3. küfür etmek yasaktır.
     Mesaj: '{}'""".format(text)
     
     logger.info("Kural ihlali kontrolü başlatılıyor: %s", text)
