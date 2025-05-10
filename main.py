@@ -262,48 +262,36 @@ def check_rules_violation(text):
     return "EVET" in response.upper()
 
 def handle_violation(chat_id, user_id, message_id):
-    """İhlal işleme mekanizması"""
+    """İhlal işleme mekanizması (Rose Bot entegrasyonlu)"""
     global violations
     
-    # 1. İhlal sayacını güncelle
     violations[user_id] += 1
     save_violations()
-    
-    # 2. Uyarı mesajı gönder
-    warn_msg = f"⚠️ Warning ({violations[user_id]}/3): You violated group rules!"
-    send_message(chat_id, warn_msg)
-    
-    # 3. Mesajı sil (bot adminse)
+
+    # Mesajı sil
     try:
         delete_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
         requests.post(delete_url, json={"chat_id": chat_id, "message_id": message_id})
     except Exception as e:
-        logger.error("Mesaj silinemedi: %s", e)
-    
-    # 4. 3. ihlalde ban
-ihlalde ban (GÜNCELLENMİŞ KISIM)
+        logger.error(f"Mesaj silinemedi: {e}")
+
     if violations[user_id] >= 3:
-        # Kullanıcı bilgilerini çek
-        user_info = get_user_info(user_id)
-        if user_info:
-            username = user_info.get('username', '')
-            # Rose Bot için doğru format: "/ban @kullanıcıadı" veya "/ban user_id"
-            ban_command = f"/ban @{username}" if username else f"/ban {user_id}"
-            send_message(chat_id, ban_command)
+        # Rose Bot için kritik kısım: Orijinal mesajı yanıtlayarak ban komutu gönder
+        ban_command = {
+            "chat_id": chat_id,
+            "text": "/ban",
+            "reply_to_message_id": message_id  # Bu satır Rose Bot'un kullanıcıyı tanımasını sağlar
+        }
+        send_message(ban_command)
         
+        # Ek bilgilendirme
+        send_message(chat_id, f"⛔ User banned after 3 violations")
         violations[user_id] = 0
         save_violations()
-
-def get_user_info(user_id):
-    """Kullanıcı bilgilerini Telegram API'den al"""
-    try:
-        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChat"
-        response = requests.post(url, json={"chat_id": user_id})
-        if response.status_code == 200:
-            return response.json().get('result', {})
-    except Exception as e:
-        logger.error(f"Kullanıcı bilgisi alınamadı: {e}")
-    return None
+    else:
+        # Uyarı mesajı
+        warn_msg = f"⚠️ Warning ({violations[user_id]}/3): Rule violation!"
+        send_message(chat_id, warn_msg)
 
 # --- Webhook endpoint ---
 @app.route('/webhook/<token>', methods=['POST'])
