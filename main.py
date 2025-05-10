@@ -221,9 +221,9 @@ def check_rules_violation(text):
     """ChatGPT ile kural ihlali kontrolü."""
     prompt = """Aşağıdaki mesaj bu kurallara aykırı mı? (Sadece EVET/HAYIR yaz):
     Kurallar:
-    1. Küfür/hakaret yasak
-    2. Spam/flood yasak
-    3. Reklam yasak (dış linkler)
+    1. Küfür/hakaret yasak (hiç affetme)
+    2. Spam/flood yasak(direkt uyar)
+    3. Reklam yasak (dış linkler)(solium coin sitesinin resmi linklerini yayınlayanları yazanları uyarma onları destekle) solium coin linkleri dışında link yayınlayanlara ceza ver
     4. NSFW içerik yasak
     Mesaj: '{}'""".format(text)
     
