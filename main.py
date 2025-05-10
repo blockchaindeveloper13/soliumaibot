@@ -30,6 +30,16 @@ except FileNotFoundError:
 except Exception as e:
     logger.error(f"İhlal dosyası yüklenemedi: {e}")
 
+# Solium Coin resmi linkleri için beyaz liste
+WHITELIST_LINKS = [
+    "https://soliumcoin.com",
+    "t.me/soliumcoinchat",
+    "t.me/soliumcoin",
+    "https://x.com/soliumcoin",
+    "https://github.com/soliumcoin/solium-project",
+    "https://medium.com/@soliumcoin"
+]
+
 def save_violations():
     """İhlal verilerini dosyaya kaydeder."""
     try:
@@ -179,6 +189,29 @@ def send_message(chat_id, text, reply_to_message_id=None, **kwargs):
         logger.error(f"Telegram mesaj gönderilemedi: {e}")
         return None
 
+def is_user_admin(chat_id, user_id):
+    """Kullanıcının yönetici olup olmadığını kontrol eder."""
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChatMember"
+    payload = {
+        "chat_id": chat_id,
+        "user_id": user_id
+    }
+    try:
+        logger.info("Yönetici kontrolü: UserID:%s, ChatID:%s", user_id, chat_id)
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            member_info = response.json().get("result", {})
+            status = member_info.get("status")
+            is_admin = status in ["administrator", "creator"]
+            logger.info("Yönetici kontrol sonucu: UserID:%s, Admin:%s", user_id, is_admin)
+            return is_admin
+        else:
+            logger.error("Yönetici kontrolü başarısız: %s", response.text)
+            return False
+    except Exception as e:
+        logger.error(f"Yönetici kontrolü başarısız: {e}")
+        return False
+
 def ban_user(chat_id, user_id):
     """Telegram API üzerinden kullanıcıyı banlar."""
     ban_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/banChatMember"
@@ -218,12 +251,18 @@ def delete_message(chat_id, message_id):
         return None
 
 def check_rules_violation(text):
-    """ChatGPT ile kural ihlali kontrolü."""
+    """ChatGPT ile kural ihlali kontrolü, beyaz listedeki linkleri hariç tutar."""
+    # Beyaz listedeki linkleri kontrol et
+    for link in WHITELIST_LINKS:
+        if link.lower() in text.lower():
+            logger.info("Beyaz listedeki link tespit edildi: %s", link)
+            return False  # Resmi link varsa ihlal değil
+
     prompt = """Aşağıdaki mesaj bu kurallara aykırı mı? (Sadece EVET/HAYIR yaz):
     Kurallar:
-    1. Küfür/hakaret yasak (hiç affetme)
-    2. Spam/flood yasak(direkt uyar)
-    3. Reklam yasak (dış linkler)(solium coin sitesinin resmi linklerini yayınlayanları yazanları uyarma onları destekle) solium coin linkleri dışında link yayınlayanlara ceza ver
+    1. Küfür/hakaret yasak
+    2. Spam/flood yasak
+    3. Resmi linkler dışındaki dış linkler yasak
     4. NSFW içerik yasak
     Mesaj: '{}'""".format(text)
     
@@ -233,14 +272,19 @@ def check_rules_violation(text):
     return "EVET" in response.upper()
 
 def handle_violation(chat_id, user_id, message_id):
-    """İhlal işleme mekanizması."""
+    """İhlal işleme mekanizması, yöneticileri hariç tutar."""
     global violations
     
+    # Kullanıcının yönetici olup olmadığını kontrol et
+    if is_user_admin(chat_id, user_id):
+        logger.info("Yönetici tespit edildi, ihlal işlemi uygulanmadı: UserID:%s", user_id)
+        return
+
     violations[user_id] += 1
     save_violations()
 
     if violations[user_id] >= 3:
-        text_to_send = "⛔User banned after 3 violations !"
+        text_to_send = "⛔ Kullanıcı 3 ihlalden sonra banlandı!"
         logger.info("Ban işlemi başlatılıyor: UserID:%s, ChatID:%s", user_id, chat_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
         # Kullanıcıyı banla
@@ -250,7 +294,7 @@ def handle_violation(chat_id, user_id, message_id):
         violations[user_id] = 0
         save_violations()
     else:
-        text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Please do not violate group rules!"
+        text_to_send = f"⚠️ Uyarı ({violations[user_id]}/3): Kural ihlali!"
         logger.info("Uyarı mesajı gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
         # Mesajı sil
@@ -298,6 +342,7 @@ def webhook(token):
 def home():
     """Ana sayfa."""
     return "Solium AI Telegram Botu aktif!"
+
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
