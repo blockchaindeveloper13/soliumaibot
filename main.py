@@ -270,7 +270,7 @@ def handle_violation(chat_id, user_id, message_id):
     save_violations()
     
     # 2. Uyarı mesajı gönder
-    warn_msg = f"⚠️ Uyarı ({violations[user_id]}/3): Grup kurallarını ihlal ettiniz!"
+    warn_msg = f"⚠️ Warning ({violations[user_id]}/3): You violated group rules!"
     send_message(chat_id, warn_msg)
     
     # 3. Mesajı sil (bot adminse)
