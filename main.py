@@ -2,6 +2,28 @@ import os
 import logging
 import requests
 from flask import Flask, request, jsonify
+from collections import defaultdict
+import json
+
+app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
+
+# ... (TELEGRAM_BOT_TOKEN ve OPENAI_API_KEY tanımları)
+
+# İhlal Takip Sistemi
+VIOLATIONS_FILE = "violations.json"
+violations = defaultdict(int)
+
+try:
+    with open(VIOLATIONS_FILE, "r") as f:
+        violations.update(json.load(f))
+except FileNotFoundError:
+    pass
+
+def save_violations():
+    with open(VIOLATIONS_FILE, "w") as f:
+        json.dump(violations, f)
+
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -200,6 +222,7 @@ def send_message(chat_id, text):
     return response
 
 # --- Mesaj işleme fonksiyonu ---
+# --- Mesaj işleme fonksiyonu ---
 def process_message(update):
     if "message" not in update:
         logger.info("Mesaj bulunamadı: %s", update)
@@ -207,15 +230,61 @@ def process_message(update):
 
     message = update["message"]
     chat_id = message.get("chat", {}).get("id")
+    user_id = message.get("from", {}).get("id")  # Kullanıcı ID'sini ekledik
     text = message.get("text", "")
+    message_id = message.get("message_id")  # Mesaj silme için
 
-    logger.info("Gelen mesaj: %s", text)
+    logger.info("Gelen mesaj (UserID:%s): %s", user_id, text)
 
-    # OpenAI GPT'den yanıt al
+    # 1. Önce grup kural kontrolü yap
+    is_violation = check_rules_violation(text)
+    
+    if is_violation:
+        handle_violation(chat_id, user_id, message_id)
+        return  # İhlal durumunda normal yanıt vermeyi atla
+    
+    # 2. Orijinal işlevselliği koru (ChatGPT yanıtı)
     reply = ask_chatgpt(text)
-
-    # Yanıtı gönder
     send_message(chat_id, reply)
+
+# --- Yardımcı Fonksiyonlar ---
+def check_rules_violation(text):
+    """ChatGPT ile kural ihlali kontrolü"""
+    prompt = """Aşağıdaki mesaj bu kurallara aykırı mı? (Sadece EVET/HAYIR yaz):
+    Kurallar:
+    1. Küfür/hakaret yasak
+    2. Spam/flood yasak
+    3. Reklam yasak (dış linkler)
+    4. NSFW içerik yasak
+    Mesaj: '{}'""".format(text)
+    
+    response = ask_chatgpt(prompt)
+    return "EVET" in response.upper()
+
+def handle_violation(chat_id, user_id, message_id):
+    """İhlal işleme mekanizması"""
+    global violations
+    
+    # 1. İhlal sayacını güncelle
+    violations[user_id] += 1
+    save_violations()
+    
+    # 2. Uyarı mesajı gönder
+    warn_msg = f"⚠️ Uyarı ({violations[user_id]}/3): Grup kurallarını ihlal ettiniz!"
+    send_message(chat_id, warn_msg)
+    
+    # 3. Mesajı sil (bot adminse)
+    try:
+        delete_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
+        requests.post(delete_url, json={"chat_id": chat_id, "message_id": message_id})
+    except Exception as e:
+        logger.error("Mesaj silinemedi: %s", e)
+    
+    # 4. 3. ihlalde ban
+    if violations[user_id] >= 3:
+        send_message(chat_id, f"/ban {user_id}")  # Rose Bot komutu
+        violations[user_id] = 0  # Sayaç sıfırla
+        save_violations()
 
 # --- Webhook endpoint ---
 @app.route('/webhook/<token>', methods=['POST'])
