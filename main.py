@@ -4,7 +4,7 @@ import requests
 from flask import Flask, request, jsonify
 from collections import defaultdict
 import json
-import time
+from datetime import datetime
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -148,8 +148,10 @@ Rolün, kullanıcılara yardım etmek, açık ve güven artırıcı yanıtlar ve
     }
 
     try:
+        logger.info("ChatGPT API isteği gönderiliyor: %s", datetime.now())
         response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
         if response.status_code == 200:
+            logger.info("ChatGPT API yanıtı alındı: %s", datetime.now())
             return response.json()["choices"][0]["message"]["content"]
         else:
             logger.error("ChatGPT API hatası: %s", response.text)
@@ -166,9 +168,12 @@ def send_message(chat_id, text, reply_to_message_id=None, **kwargs):
         payload["reply_to_message_id"] = reply_to_message_id
     payload.update(kwargs)
     try:
+        logger.info("Telegram mesajı gönderiliyor: %s", text)
         response = requests.post(send_url, json=payload)
         if response.status_code != 200:
             logger.error("Telegram mesaj gönderilemedi: %s", response.text)
+        else:
+            logger.info("Telegram mesajı gönderildi: %s", text)
         return response
     except Exception as e:
         logger.error(f"Telegram mesaj gönderilemedi: {e}")
@@ -184,7 +189,9 @@ def check_rules_violation(text):
     4. NSFW içerik yasak
     Mesaj: '{}'""".format(text)
     
+    logger.info("Kural ihlali kontrolü başlatılıyor: %s", text)
     response = ask_chatgpt(prompt)
+    logger.info("Kural ihlali kontrol sonucu: %s", response)
     return "EVET" in response.upper()
 
 def handle_violation(chat_id, user_id, message_id):
@@ -196,31 +203,18 @@ def handle_violation(chat_id, user_id, message_id):
 
     additional_text = None
     if violations[user_id] >= 3:
-        text_to_send = "/ban"
+        text_to_send = "/dban"  # Rose Bot'un hem ban hem silme komutu
         additional_text = "⛔ Kullanıcı 3 ihlalden sonra banlandı!"
+        logger.info("Ban komutu gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
+        send_message(chat_id, text_to_send, reply_to_message_id=message_id)
+        if additional_text:
+            send_message(chat_id, additional_text)
         violations[user_id] = 0
         save_violations()
     else:
         text_to_send = f"⚠️ Uyarı ({violations[user_id]}/3): Kural ihlali!"
-
-    response = send_message(chat_id, text_to_send, reply_to_message_id=message_id)
-    if response and response.status_code != 200:
-        logger.error("İhlal mesajı gönderilemedi: %s", response.text)
-
-    if additional_text:
-        send_message(chat_id, additional_text)
-
-    # Mesaj silme işlemini 5 saniye geciktir
-    time.sleep(5)
-    
-    delete_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
-    delete_payload = {"chat_id": chat_id, "message_id": message_id}
-    try:
-        response = requests.post(delete_url, json=delete_payload)
-        if response.status_code != 200:
-            logger.error("Mesaj silinemedi: %s", response.text)
-    except Exception as e:
-        logger.error(f"Mesaj silinemedi: {e}")
+        logger.info("Uyarı mesajı gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
+        send_message(chat_id, text_to_send, reply_to_message_id=message_id)
 
 def process_message(update):
     """Gelen Telegram güncellemelerini işler."""
