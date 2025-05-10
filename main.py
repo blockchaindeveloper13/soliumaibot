@@ -265,9 +265,9 @@ def check_rules_violation(text):
     prompt = """Aşağıdaki mesaj bu kurallara aykırı mı? (Sadece EVET/HAYIR yaz):
     Kurallar:
     1. Küfür/hakaret yasak
-    2. Spam/flood yasak
+    2. Spam yasak
     3. Resmi linkler dışındaki dış linkler yasak
-    4.Reklam yapmak yasak
+    4.Solium coin dışında başka bir coinin Reklamını yapmak yasak
     Mesaj: '{}'""".format(text)
     
     logger.info("Kural ihlali kontrolü başlatılıyor: %s", text)
