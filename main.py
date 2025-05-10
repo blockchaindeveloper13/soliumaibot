@@ -192,7 +192,7 @@ Your role is to help users, answer clearly, and boost trust. Always be honest an
         ]
     }
 
-    response = requests.post("[invalid url, do not cite] headers=headers, json=data)
+    response = requests.post("[invalid url, do not cite]" headers=headers, json=data)
     
     if response.status_code == 200:
         return response.json()["choices"][0]["message"]["content"]
