@@ -59,108 +59,103 @@ def ask_chatgpt(message):
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
     }
-
     data = {
         "model": "gpt-3.5-turbo",
         "messages": [
             {
                 "role": "system",
-                "content": """Sen Solium Coin hakkında kullanıcıların sorularını yanıtlayan yardımsever bir asistan botsun.Kullanıcılara ilk yanıtın daima ingilizce yazmalisin eğer seninle farklı bir dilde konuşurlarsa onlara konuştukları dilde cevap vermelisin. kim hangi dilde konuşursa onlara o dilde cevap vermelisin. Kullanıcılara Solium Coin projesini tanıt, özelliklerini açıkla ve sorularını doğru, yardımsever ve dostça bir şekilde yanıtla. İşte bilmen gerekenler:
+                "content": """You are a helpful assistant bot for Solium Coin, answering users' questions about the project. Your first response should always be in English, but if users speak another language, reply in that language. Introduce Solium Coin, explain its features, and answer questions accurately, helpfully, and in a friendly manner. Here’s what you need to know:
 
-### Temel Bilgiler:
-- Proje: **Solium Coin (SLM)**
+### Basic Information:
+- Project: **Solium Coin (SLM)**
 - Website: https://soliumcoin.com
-- Toplam Arz: 100,000,000 SLM
-- Ön Satış: 50,000,000 SLM (%50)
-- Airdrop: 10,000,000 SLM (%10)
-- Blockchain: Binance Smart Chain (BSC) ve Solana
-- BSC Kontrat Adresi: 0x307a0dc0814CbD64E81a9BC8517441Ca657fB9c7
-- Solana Kontrat Adresi: 9rFLChxL7444pp1ykat7eoaFh76BiLEZNXUvn9Fpump
+- Total Supply: 100,000,000 SLM
+- Presale: 50,000,000 SLM (50%)
+- Airdrop: 10,000,000 SLM (10%)
+- Blockchain: Binance Smart Chain (BSC) and Solana
+- BSC Contract Address: 0x307a0dc0814CbD64E81a9BC8517441Ca657fB9c7
+- Solana Contract Address: 9rFLChxL7444pp1ykat7eoaFh76BiLEZNXUvn9Fpump
 
 ### Tokenomics:
-- Ön Satış: 50M SLM (%50)
-- Likidite: 20M SLM (%20)
-- Airdrop: 10M SLM (%10)
-- Staking: 10M SLM (%10)
-- GameFi & Ödüller: 10M SLM (%10)
+- Presale: 50M SLM (50%)
+- Liquidity: 20M SLM (20%)
+- Airdrop: 10M SLM (10%)
+- Staking: 10M SLM (10%)
+- GameFi & Rewards: 10M SLM (10%)
 
-### Ana Özellikler:
-- %100 Adil Lansman – Takım için ayrılmış token yok, geliştirici ücreti yok, özel satış yok.
-- Web3 değerleriyle güçlendirilmiş: şeffaflık, ademi merkeziyetçilik ve topluluk odaklılık.
-- Staking, DAO yönetimi, GameFi genişlemesi ve zincirler arası köprü planlanıyor.
-- Solium Coin, ABD, Kanada veya OFAC tarafından yaptırım uygulanan ülkelerin sakinleri için mevcut değil.
+### Main Features:
+- 100% Fair Launch – No team tokens, no dev fees, no private sale.
+- Powered by Web3 values: transparency, decentralization, and community focus.
+- Staking, DAO governance, GameFi expansion, and cross-chain bridge planned.
+- Solium Coin is not available to residents of the USA, Canada, or OFAC-sanctioned countries.
 
-### Yol Haritası:
-**Q1 – Lansman & Ön Satış**
-- Token oluşturuldu ve akıllı kontrat devreye alındı (Tamamlandı)
-- Website, GitHub, Medium, Telegram, X başlatıldı (Tamamlandı)
-- Ön satış başladı (Tamamlandı)
-- İlk influencer iş birlikleri
-- Topluluk büyümesi
+### Roadmap:
+**Q1 – Launch & Presale**
+- Token created and smart contract deployed (Completed)
+- Website, GitHub, Medium, Telegram, X launched (Completed)
+- Presale started (Completed)
+- First influencer collaborations
+- Community growth
 
-**Q2 – Büyüme & Görünürlük**
-- DEXTools, CoinGecko, CoinMarketCap listelenmeleri
-- İlk CEX listelenmesi (Hedef: MEXC veya Bitget)
-- Airdrop dağıtımı (10M SLM)
-- Topluluk katılımı ve staking Dapp entegrasyonu
+**Q2 – Growth & Visibility**
+- DEXTools, CoinGecko, CoinMarketCap listings
+- First CEX listing (Target: MEXC or Bitget)
+- Airdrop distribution (10M SLM)
+- Community engagement and staking Dapp integration
 
-**Q3 – Genişleme**
-- Staking lansmanı (10M SLM ayrıldı)
-- KuCoin & Binance listelenme hedefi
-- GameFi konsepti tanıtımı
-- DAO geliştirme ve köprü araştırması
+**Q3 – Expansion**
+- Staking launch (10M SLM allocated)
+- KuCoin & Binance listing targets
+- GameFi concept introduction
+- DAO development and bridge research
 
-**Q4 – Ekosistem Geliştirme**
-- SLM kullanımıyla GameFi lansmanı
-- Gerçek dünya entegrasyonları & uzun vadeli staking
-- Kullanım sağlayan NFT koleksiyonu
-- Küresel pazarlama ve topluluk genişlemesi
+**Q4 – Ecosystem Development**
+- GameFi launch with SLM usage
+- Real-world integrations & long-term staking
+- Utility-driven NFT collection
+- Global marketing and community expansion
 
-### Resmi Linkler:
+### Official Links:
 - Website: https://soliumcoin.com
-- Telegram Grubu: https://t.me/soliumcoinchat
-- Telegram Kanalı: https://t.me/soliumcoin
+- Telegram Group: https://t.me/soliumcoinchat
+- Telegram Channel: https://t.me/soliumcoin
 - Twitter/X: https://x.com/soliumcoin
 - GitHub: https://github.com/soliumcoin/solium-project
 - Medium: https://medium.com/@soliumcoin
 
-### Solium Coin (SLM) Özellikleri ve Avantajları:
-1. **%100 Halka Açık Lansman**: Gizli cüzdanlar veya erken erişim olmadan adil ve şeffaf bir lansman.
-2. **Denetlenmiş Akıllı Kontratlar**: Güvenlik ve şeffaflık için BSC ve Solana kontratları denetlendi.
-3. **BNB Zinciri Desteği**: Hızlı işlemler, düşük ücretler ve yüksek güvenlik.
-4. **Airdrop, Staking & Oyunlaştırma**: Topluluk üyelerine airdrop, staking ve GameFi özellikleri ile ödüller.
-5. **Web3 Hazır**: Çoklu cüzdan entegrasyonu, DEX uyumluluğu ve merkeziyetsiz uygulamalara odaklanma.
+### Solium Coin (SLM) Features and Benefits:
+1. **100% Public Launch**: No hidden wallets or early access for a fair and transparent launch.
+2. **Audited Smart Contracts**: BSC and Solana contracts audited for security and transparency.
+3. **BNB Chain Support**: Fast transactions, low fees, and high security.
+4. **Airdrop, Staking & Gamification**: Rewards for community members through airdrop, staking, and GameFi features.
+5. **Web3 Ready**: Multi-wallet integration, DEX compatibility, and focus on decentralized applications.
 
-Solium Coin, blockchain alanında devrim yaratmayı amaçlayan çığır açıcı bir kripto para projesidir. Airdrop ve Ön Satış'a katılarak geleceğin bir parçası olabilirsiniz. Daha fazla bilgi için https://soliumcoin.com adresini ziyaret edin. #SoliumCoin #Crypto
+Solium Coin is a groundbreaking cryptocurrency project aiming to revolutionize the blockchain space. Join the Airdrop and Presale to become part of the future. Visit https://soliumcoin.com for more information. #SoliumCoin #Crypto
 
-### Avantajlar:
-1. **Hız:** Binance Smart Chain ve Solana sayesinde ışık hızında işlemler.
-2. **Güvenlik:** Gelişmiş şifreleme protokolleriyle fonlarınız güvende.
-3. **Ölçeklenebilirlik:** Yüksek işlem hacmini destekleyen sağlam bir platform.
-4. **Topluluk Odaklı:** Projenin gelişimini şekillendiren tutkulu bir topluluk.
+### Benefits:
+1. **Speed:** Lightning-fast transactions thanks to Binance Smart Chain and Solana.
+2. **Security:** Advanced encryption protocols keep your funds safe.
+3. **Scalability:** Robust platform supporting high transaction volumes.
+4. **Community-Driven:** A passionate community shaping the project’s development.
 
-### Şeffaflık ve Güvenlik:
-1. **Denetlenmiş Kontratlar**: BSC Kontrat Adresi: 0x307a0dc0814CbD64E81a9BC8517441Ca657fB9c7
-2. **Açık Kaynak Kod**: GitHub'da mevcut: https://github.com/soliumcoin/solium-project
-3. **Takım için Ayrılmış Token Yok**: Adil bir token dağıtımı.
+### Transparency and Security:
+1. **Audited Contracts**: BSC Contract Address: 0x307a0dc0814CbD64E81a9BC8517441Ca657fB9c7
+2. **Open Source Code**: Available on GitHub: https://github.com/soliumcoin/solium-project
+3. **No Team Tokens**: Fair token distribution.
 
-### Airdrop ve Ön Satış:
-- **Airdrop:** Telegram grubuna katılın (t.me/soliumcoinchat) and BSC adresinizi paylaşın. Her 7 günde bir 1M $SLM kazanma şansı!
-- **Ön Satış:** MetaMask ile https://soliumcoin.com adresinden BNB ile $SLM satın alın (1 BNB = 10,000 $SLM). En iyi alıcılar için ödüller:
-  - 1.: 1M $SLM
-  - 2.: 500K $SLM
-  - 3.: 100K $SLM
-  - 4.-10.: Daha fazla ödül!
+### Airdrop and Presale:
+- **Airdrop:** Join the Telegram group (t.me/soliumcoinchat) and share your BSC address. Chance to win 1M $SLM every 7 days!
+- **Presale:** Buy $SLM with BNB via MetaMask at https://soliumcoin.com (1 BNB = 10,000 $SLM). Rewards for top buyers:
+  - 1st: 1M $SLM
+  - 2nd: 500K $SLM
+  - 3rd: 100K $SLM
+  - 4th-10th: Additional rewards!
 
-Rolün, kullanıcılara  hem yardım etmek hemde grupta yöneticilik yapmak, açık ve güven artırıcı yanıtlar vermek. Her zaman dürüst ve bilgilendirici ol, ve bunun finansal tavsiye olmadığını hatırlat ve amerikalılara satılamayacağınıda belirt."""
+Your role is to assist users, act as a group moderator, and provide clear, trust-building responses. Always be honest, informative, and remind users that this is not financial advice and that Solium Coin is not available for sale to Americans or Canadians."""
             },
-            {
-                "role": "user",
-                "content": message
-            }
+            {"role": "user", "content": message}
         ]
     }
-
     try:
         logger.info("ChatGPT API isteği gönderiliyor: %s", datetime.now())
         response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
@@ -174,13 +169,16 @@ Rolün, kullanıcılara  hem yardım etmek hemde grupta yöneticilik yapmak, aç
         logger.error(f"ChatGPT API isteği başarısız: {e}")
         return "Sorry, I can't answer right now."
 
-def send_message(chat_id, text, reply_to_message_id=None, **kwargs):
+def send_message(chat_id, text, reply_to_message_id=None, parse_mode="Markdown"):
     """Telegram API üzerinden mesaj gönderir."""
     send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text}
-    if reply_to_message_id is not None:
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": parse_mode
+    }
+    if reply_to_message_id:
         payload["reply_to_message_id"] = reply_to_message_id
-    payload.update(kwargs)
     try:
         logger.info("Telegram mesajı gönderiliyor: %s", text)
         response = requests.post(send_url, json=payload)
@@ -196,10 +194,7 @@ def send_message(chat_id, text, reply_to_message_id=None, **kwargs):
 def is_user_admin(chat_id, user_id):
     """Kullanıcının yönetici olup olmadığını kontrol eder."""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChatMember"
-    payload = {
-        "chat_id": chat_id,
-        "user_id": user_id
-    }
+    payload = {"chat_id": chat_id, "user_id": user_id}
     try:
         logger.info("Yönetici kontrolü: UserID:%s, ChatID:%s", user_id, chat_id)
         response = requests.post(url, json=payload)
@@ -219,10 +214,7 @@ def is_user_admin(chat_id, user_id):
 def ban_user(chat_id, user_id):
     """Telegram API üzerinden kullanıcıyı banlar."""
     ban_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/banChatMember"
-    payload = {
-        "chat_id": chat_id,
-        "user_id": user_id
-    }
+    payload = {"chat_id": chat_id, "user_id": user_id}
     try:
         logger.info("Kullanıcı banlanıyor: UserID:%s, ChatID:%s", user_id, chat_id)
         response = requests.post(ban_url, json=payload)
@@ -238,21 +230,16 @@ def ban_user(chat_id, user_id):
 def delete_message(chat_id, message_id):
     """Telegram API üzerinden mesajı siler."""
     delete_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
-    payload = {
-        "chat_id": chat_id,
-        "message_id": message_id
-    }
+    payload = {"chat_id": chat_id, "message_id": message_id}
     try:
         logger.info("Mesaj siliniyor: MessageID:%s, ChatID:%s", message_id, chat_id)
         response = requests.post(delete_url, json=payload)
-        if response.status_code != 200:
-            logger.error("Mesaj silinemedi: %s", response.text)
-        else:
+        if response.status_code == 200:
             logger.info("Mesaj başarıyla silindi: MessageID:%s", message_id)
-        return response
+        else:
+            logger.warning("Mesaj silinemedi: %s", response.text)
     except Exception as e:
-        logger.error(f"Mesaj silinemedi: {e}")
-        return None
+        logger.warning(f"Mesaj silinemedi: {e}")
 
 def check_rules_violation(text):
     """ChatGPT ile kural ihlali kontrolü, beyaz listedeki linkleri hariç tutar."""
@@ -260,25 +247,30 @@ def check_rules_violation(text):
     for link in WHITELIST_LINKS:
         if link.lower() in text.lower():
             logger.info("Beyaz listedeki link tespit edildi: %s", link)
-            return False  # Resmi link varsa ihlal değil
+            return False
 
-    prompt = """Aşağıdaki mesaj bu kurallara aykırı mı? (Sadece EVET/HAYIR yaz):
-    Kurallar:
-    1. https://soliumcoin.com gibi resmi linkler dışındaki harici linkler yasaktır.
-    2. Solium Coin dışında başka bir kripto paranın veya projenin reklamı yasaktır.
-    3. küfür etmek yasaktır.
-    Mesaj: '{}'""".format(text)
-    
+    # Boş veya çok kısa mesajları ihlal dışı tut
+    if not text or len(text.strip()) < 3:
+        logger.info("Boş veya çok kısa mesaj, ihlal kontrolü atlandı: %s", text)
+        return False
+
+    prompt = """Does the following message violate these rules? (Write only YES/NO):
+Rules:
+1. Profanity, insults, or inappropriate language are prohibited (e.g., 'stupid', 'damn').
+2. External links other than official Solium Coin links (e.g., https://soliumcoin.com) are prohibited.
+3. Promoting cryptocurrencies or projects other than Solium Coin is prohibited (e.g., 'Buy Bitcoin', 'Ethereum is great').
+4. Empty messages, system notifications, or group join events are not violations.
+Message: '{}'
+""".format(text)
+
     logger.info("Kural ihlali kontrolü başlatılıyor: %s", text)
     response = ask_chatgpt(prompt)
-    logger.info("Kural ihlali kontrol sonucu: %s", response)
-    return "EVET" in response.upper()
+    logger.info("Kural ihlali kontrol sonucu: %s için %s", text, response)
+    return "YES" in response.upper()
 
 def handle_violation(chat_id, user_id, message_id):
     """İhlal işleme mekanizması, yöneticileri hariç tutar."""
     global violations
-    
-    # Kullanıcının yönetici olup olmadığını kontrol et
     if is_user_admin(chat_id, user_id):
         logger.info("Yönetici tespit edildi, ihlal işlemi uygulanmadı: UserID:%s", user_id)
         return
@@ -287,20 +279,17 @@ def handle_violation(chat_id, user_id, message_id):
     save_violations()
 
     if violations[user_id] >= 3:
-        text_to_send = "⛔User banned after 3 violations !"
+        text_to_send = "⛔ User banned after 3 violations! Contact @soliumcoin for support."
         logger.info("Ban işlemi başlatılıyor: UserID:%s, ChatID:%s", user_id, chat_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
-        # Kullanıcıyı banla
         ban_user(chat_id, user_id)
-        # Mesajı sil
         delete_message(chat_id, message_id)
         violations[user_id] = 0
         save_violations()
     else:
-        text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Rule violation!"
+        text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Your message may contain profanity, external links, or other crypto promotions. Check /rules."
         logger.info("Uyarı mesajı gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
-        # Mesajı sil
         delete_message(chat_id, message_id)
 
 def process_message(update):
@@ -312,21 +301,63 @@ def process_message(update):
     message = update["message"]
     chat_id = message.get("chat", {}).get("id")
     user_id = message.get("from", {}).get("id")
-    text = message.get("text", "")
     message_id = message.get("message_id")
+
+    # Yeni üye olayı
+    if "new_chat_members" in message:
+        welcome = """Welcome to the Solium Coin group! 🚀 
+Check the airdrop: /airdrop
+Read the rules: /rules
+Got questions? Ask away! 😎"""
+        send_message(chat_id, welcome)
+        logger.info("Yeni üye hoş geldin mesajı gönderildi: UserID:%s", user_id)
+        return
+
+    # Normal mesajlar için text kontrolü
+    text = message.get("text", "")
+    if not text:
+        logger.info("Boş veya metinsiz mesaj, ihlal kontrolü atlandı: UserID:%s", user_id)
+        return
 
     logger.info("Gelen mesaj (UserID:%s): %s", user_id, text)
 
+    # Komutlar
+    if text.lower() == "/rules":
+        rules = """**Group Rules**:
+1. No profanity, insults, or inappropriate language.
+2. Only official Solium Coin links (e.g., https://soliumcoin.com, t.me/soliumcoinchat) are allowed.
+3. Promoting other cryptocurrencies or projects is prohibited."""
+        send_message(chat_id, rules, reply_to_message_id=message_id)
+        return
+    
+    if text.lower() == "/airdrop":
+        airdrop_info = """**Solium Coin Airdrop**:
+- Total: 10,000,000 SLM (10% of supply).
+- Join: t.me/soliumcoinchat, share your BSC address.
+- Distribution: 1M SLM every 7 days!
+More info: https://soliumcoin.com"""
+        send_message(chat_id, airdrop_info, reply_to_message_id=message_id)
+        return
+
+    if text.lower().startswith("/resetviolations") and is_user_admin(chat_id, user_id):
+        try:
+            target_user_id = int(text.split()[1])
+            violations[target_user_id] = 0
+            save_violations()
+            send_message(chat_id, f"UserID {target_user_id} violation count reset.", reply_to_message_id=message_id)
+        except (IndexError, ValueError):
+            send_message(chat_id, "Usage: /resetviolations <user_id>", reply_to_message_id=message_id)
+        return
+
     # Kural ihlali kontrolü
     is_violation = check_rules_violation(text)
-    
     if is_violation:
         handle_violation(chat_id, user_id, message_id)
         return
     
     # Normal yanıt
     reply = ask_chatgpt(text)
-    send_message(chat_id, reply)
+    send_message(chat_id, reply, reply_to_message_id=message_id)
 
 @app.route('/webhook/<token>', methods=['POST'])
 def webhook(token):
@@ -337,16 +368,15 @@ def webhook(token):
 
     update = request.get_json()
     logger.info("Webhook geldi: %s", update)
-
     process_message(update)
     return jsonify({"status": "ok"}), 200
 
 @app.route('/')
 def home():
     """Ana sayfa."""
-    return "Solium AI Telegram Botu aktif!"
+    return "Solium AI Telegram Bot is active!"
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    logger.info("Bot %s portunda çalışıyor...", port)
+    logger.info("Bot running on port %s...", port)
     app.run(host='0.0.0.0', port=port)
