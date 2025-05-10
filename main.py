@@ -267,7 +267,7 @@ def check_rules_violation(text):
     1. Küfür/hakaret yasak
     2. Spam/flood yasak
     3. Resmi linkler dışındaki dış linkler yasak
-    4. NSFW içerik yasak
+    4.Reklam yapmak yasak
     Mesaj: '{}'""".format(text)
     
     logger.info("Kural ihlali kontrolü başlatılıyor: %s", text)
