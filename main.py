@@ -240,7 +240,7 @@ def handle_violation(chat_id, user_id, message_id):
     save_violations()
 
     if violations[user_id] >= 3:
-        text_to_send = "⛔ Kullanıcı 3 ihlalden sonra banlandı!"
+        text_to_send = "⛔User banned after 3 violations !"
         logger.info("Ban işlemi başlatılıyor: UserID:%s, ChatID:%s", user_id, chat_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
         # Kullanıcıyı banla
