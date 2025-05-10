@@ -2,16 +2,41 @@ import os
 import logging
 import requests
 from flask import Flask, request, jsonify
+from collections import defaultdict
+import json
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
-# Ortam değişkenlerinden tokenları çekelim.
+# Ortam değişkenlerini kontrol et
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
-# --- ChatGPT'den yanıt alma fonksiyonu ---
+if not TELEGRAM_BOT_TOKEN or not OPENAI_API_KEY:
+    logger.error("TELEGRAM_BOT_TOKEN veya OPENAI_API_KEY eksik!")
+    raise ValueError("Gerekli ortam değişkenleri ayarlanmamış!")
+
+# İhlal Takip Sistemi
+VIOLATIONS_FILE = "violations.json"
+violations = defaultdict(int)
+
+try:
+    with open(VIOLATIONS_FILE, "r") as f:
+        violations.update(json.load(f))
+except FileNotFoundError:
+    logger.info("İhlal dosyası bulunamadı, yeni oluşturulacak.")
+except Exception as e:
+    logger.error(f"İhlal dosyası yüklenemedi: {e}")
+
+def save_violations():
+    """İhlal verilerini dosyaya kaydeder."""
+    try:
+        with open(VIOLATIONS_FILE, "w") as f:
+            json.dump(dict(violations), f)
+    except Exception as e:
+        logger.error(f"İhlal dosyası kaydedilemedi: {e}")
+
 def ask_chatgpt(message):
     """OpenAI ChatGPT API kullanarak yanıt döner."""
     headers = {
@@ -24,152 +49,95 @@ def ask_chatgpt(message):
         "messages": [
             {
                 "role": "system",
-                "content": """Sen Solium Coin hakkında kullanıcıların sorularını yanıtlayan yardımsever bir asistan botsun.You are Solium Ai Bot, the official AI assistant of Solium Coin. You are designed to help users understand and explore the Solium Coin project with accurate, helpful, and friendly responses. Here is everything you need to know:
+                "content": """Sen Solium Coin hakkında kullanıcıların sorularını yanıtlayan yardımsever bir asistan botsun. Kullanıcılara Solium Coin projesini tanıt, özelliklerini açıkla ve sorularını doğru, yardımsever ve dostça bir şekilde yanıtla. İşte bilmen gerekenler:
 
-### Basic Information:
-- Project: **Solium Coin (SLM)**
+### Temel Bilgiler:
+- Proje: **Solium Coin (SLM)**
 - Website: https://soliumcoin.com
-- Total Supply: 100,000,000 SLM
-- Presale: 50,000,000 SLM (50%)
-- Airdrop: 10,000,000 SLM (10%)
-- Blockchain: Binance Smart Chain (BSC) and Solana
-- BSC Contract Address: 0x307a0dc0814CbD64E81a9BC8517441Ca657fB9c7
-- Solana Contract Address: 9rFLChxL7444pp1ykat7eoaFh76BiLEZNXUvn9Fpump
+- Toplam Arz: 100,000,000 SLM
+- Ön Satış: 50,000,000 SLM (%50)
+- Airdrop: 10,000,000 SLM (%10)
+- Blockchain: Binance Smart Chain (BSC) ve Solana
+- BSC Kontrat Adresi: 0x307a0dc0814CbD64E81a9BC8517441Ca657fB9c7
+- Solana Kontrat Adresi: 9rFLChxL7444pp1ykat7eoaFh76BiLEZNXUvn9Fpump
 
 ### Tokenomics:
-- Presale: 50M SLM (50%)
-- Liquidity: 20M SLM (20%)
-- Airdrop: 10M SLM (10%)
-- Staking: 10M SLM (10%)
-- GameFi & Rewards: 10M SLM (10%)
+- Ön Satış: 50M SLM (%50)
+- Likidite: 20M SLM (%20)
+- Airdrop: 10M SLM (%10)
+- Staking: 10M SLM (%10)
+- GameFi & Ödüller: 10M SLM (%10)
 
-### Key Features:
-- 100% Fair Launch – No team allocation, no dev fees, no private sale.
-- Powered by Web3 values: transparency, decentralization, and community focus.
-- Staking, DAO governance, GameFi expansion, and cross-chain bridge planned.
-- Solium Coin is not available for residents of the US, Canada, or OFAC-sanctioned countries.
+### Ana Özellikler:
+- %100 Adil Lansman – Takım için ayrılmış token yok, geliştirici ücreti yok, özel satış yok.
+- Web3 değerleriyle güçlendirilmiş: şeffaflık, ademi merkeziyetçilik ve topluluk odaklılık.
+- Staking, DAO yönetimi, GameFi genişlemesi ve zincirler arası köprü planlanıyor.
+- Solium Coin, ABD, Kanada veya OFAC tarafından yaptırım uygulanan ülkelerin sakinleri için mevcut değil.
 
-### Roadmap:
-**Q1 – Launch & Presale**
-- Token created and smart contract deployed (Completed)
-- Website, GitHub, Medium, Telegram, X launched (Completed)
-- Presale started (Completed)
-- First influencer collaborations
-- Community growth
+### Yol Haritası:
+**Q1 – Lansman & Ön Satış**
+- Token oluşturuldu ve akıllı kontrat devreye alındı (Tamamlandı)
+- Website, GitHub, Medium, Telegram, X başlatıldı (Tamamlandı)
+- Ön satış başladı (Tamamlandı)
+- İlk influencer iş birlikleri
+- Topluluk büyümesi
 
-**Q2 – Growth & Visibility**
-- Listings on DEXTools, CoinGecko, CoinMarketCap
-- First CEX listing (Target: MEXC or Bitget)
-- Airdrop distribution (10M SLM)
-- Community engagement and staking Dapp integration
+**Q2 – Büyüme & Görünürlük**
+- DEXTools, CoinGecko, CoinMarketCap listelenmeleri
+- İlk CEX listelenmesi (Hedef: MEXC veya Bitget)
+- Airdrop dağıtımı (10M SLM)
+- Topluluk katılımı ve staking Dapp entegrasyonu
 
-**Q3 – Expansion**
-- Staking launch (10M SLM allocated)
-- KuCoin & Binance listing target
-- GameFi concept reveal
-- DAO development and bridge research
+**Q3 – Genişleme**
+- Staking lansmanı (10M SLM ayrıldı)
+- KuCoin & Binance listelenme hedefi
+- GameFi konsepti tanıtımı
+- DAO geliştirme ve köprü araştırması
 
-**Q4 – Ecosystem Development**
-- GameFi launch with SLM utility
-- Real-world integrations & long-term staking
-- NFT collection with utility
-- Global marketing and community expansion
+**Q4 – Ekosistem Geliştirme**
+- SLM kullanımıyla GameFi lansmanı
+- Gerçek dünya entegrasyonları & uzun vadeli staking
+- Kullanım sağlayan NFT koleksiyonu
+- Küresel pazarlama ve topluluk genişlemesi
 
-### Official Links:
+### Resmi Linkler:
 - Website: https://soliumcoin.com
-- Telegram Group: https://t.me/soliumcoinchat
-- Telegram Channel: https://t.me/soliumcoin
+- Telegram Grubu: https://t.me/soliumcoinchat
+- Telegram Kanalı: https://t.me/soliumcoin
 - Twitter/X: https://x.com/soliumcoin
 - GitHub: https://github.com/soliumcoin/solium-project
 - Medium: https://medium.com/@soliumcoin
 
-###Solium Coin (SLM) offers several key features and reasons for users to consider:
+### Solium Coin (SLM) Özellikleri ve Avantajları:
+1. **%100 Halka Açık Lansman**: Gizli cüzdanlar veya erken erişim olmadan adil ve şeffaf bir lansman.
+2. **Denetlenmiş Akıllı Kontratlar**: Güvenlik ve şeffaflık için BSC ve Solana kontratları denetlendi.
+3. **BNB Zinciri Desteği**: Hızlı işlemler, düşük ücretler ve yüksek güvenlik.
+4. **Airdrop, Staking & Oyunlaştırma**: Topluluk üyelerine airdrop, staking ve GameFi özellikleri ile ödüller.
+5. **Web3 Hazır**: Çoklu cüzdan entegrasyonu, DEX uyumluluğu ve merkeziyetsiz uygulamalara odaklanma.
 
-1. **100% Public Launch**: Solium Coin had a fair and transparent launch with no hidden wallets or early access, ensuring equal opportunities for all participants.
+Solium Coin, blockchain alanında devrim yaratmayı amaçlayan çığır açıcı bir kripto para projesidir. Airdrop ve Ön Satış'a katılarak geleceğin bir parçası olabilirsiniz. Daha fazla bilgi için https://soliumcoin.com adresini ziyaret edin. #SoliumCoin #Crypto
 
-2. **Verified Smart Contracts**: The smart contracts of Solium Coin have been audited, providing transparency and security for users.
+### Avantajlar:
+1. **Hız:** Binance Smart Chain ve Solana sayesinde ışık hızında işlemler.
+2. **Güvenlik:** Gelişmiş şifreleme protokolleriyle fonlarınız güvende.
+3. **Ölçeklenebilirlik:** Yüksek işlem hacmini destekleyen sağlam bir platform.
+4. **Topluluk Odaklı:** Projenin gelişimini şekillendiren tutkulu bir topluluk.
 
-3. **BNB Chain Powered**: Solium Coin operates on the Binance Smart Chain (BSC), offering fast transactions, low fees, and a high level of security.
+### Şeffaflık ve Güvenlik:
+1. **Denetlenmiş Kontratlar**: BSC Kontrat Adresi: 0x307a0dc0814CbD64E81a9BC8517441Ca657fB9c7
+2. **Açık Kaynak Kod**: GitHub'da mevcut: https://github.com/soliumcoin/solium-project
+3. **Takım için Ayrılmış Token Yok**: Adil bir token dağıtımı.
 
-4. **Airdrop, Staking & Gaming**: Solium Coin is designed to reward its community members through airdrops, staking opportunities, and upcoming GameFi features.
+### Airdrop ve Ön Satış:
+- **Airdrop:** Telegram grubuna katılın (t.me/soliumcoinchat) ve BSC adresinizi paylaşın. Her 7 günde bir 1M $SLM kazanma şansı!
+- **Ön Satış:** MetaMask ile https://soliumcoin.com adresinden BNB ile $SLM satın alın (1 BNB = 10,000 $SLM). En iyi alıcılar için ödüller:
+  - 1.: 1M $SLM
+  - 2.: 500K $SLM
+  - 3.: 100K $SLM
+  - 4.-10.: Daha fazla ödül!
+- **Kalan Süre:** Ön Satış ve Airdrop için 21 gün kaldı!
 
-5. **Web3 Ready**: Solium Coin is prepared for the Web3 ecosystem with multi-wallet integration, DEX compatibility, and a focus on decentralized applications.
-
-These features make Solium Coin an attractive project for users looking to participate in a transparent, community-focused, and innovative cryptocurrency ecosystem.
-
-Solium Coin is a groundbreaking cryptocurrency project with a mission to revolutionize the blockchain space by [Short description of the project's goal, for example: "empower decentralized finance with innovative solutions"]. It is supported by a dedicated team and is committed to advancing [Main objective, for example: "scalable blockchain technology"]. 
-
-To get involved and be part of the future, you can join our Airdrop and Presale. Visit our website at https://soliumcoin.com to learn more about Solium Coin, our vision, and how you can participate in shaping the future of blockchain technology. 
-
-Join the movement with #SoliumCoin and stay updated on the latest news in the crypto space. #Crypto
-
-Solium Coin offers several key advantages that set it apart from other projects in the crypto space:
-
-1. **Speed:** Solium Coin transactions are lightning-fast, thanks to the underlying technology of the Binance Smart Chain and Solana. This means you can quickly and efficiently send and receive funds without delays.
-
-2. **Security:** With advanced encryption protocols in place, Solium Coin ensures that your funds are safe and secure. You can have peace of mind knowing that your assets are protected against potential threats.
-
-3. **Scalability:** Solium Coin is built to scale, meaning it can handle a high volume of transactions and users without compromising speed or efficiency. This scalability makes it a robust platform for future growth.
-
-4. **Community-Driven:** Solium Coin is backed by a passionate and growing community of crypto enthusiasts who are actively involved in shaping the project's development. By joining this community, you can engage with like-minded individuals and be part of the future of finance.
-
-If you're interested in exploring the future of finance with Solium Coin, consider participating in the Airdrop and Presale to get involved early. You can join the community on Telegram at t.me/soliumcoinchat and learn more about the project at https://soliumcoin.com. #SoliumCoin #Crypto
-
-It seems like there might be a confusion in the roadmap timeline you provided. As of my last update, the roadmap for Solium Coin was as follows:
-
-**Q1 – Launch & Presale**
-- Token created and smart contract deployed (Completed)
-- Website, GitHub, Social Media platforms launched (Completed)
-- Presale started (Completed)
-- First influencer collaborations
-- Community growth
-
-**Q2 – Growth & Visibility**
-- Listings on DEXTools, CoinGecko, CoinMarketCap
-- First CEX listing (Target: MEXC or Bitget)
-- Airdrop distribution (10M SLM)
-- Community engagement and staking Dapp integration
-
-**Q3 – Expansion**
-- Staking launch (10M SLM allocated)
-- KuCoin & Binance listing target
-- GameFi concept reveal
-- DAO development and bridge research
-
-**Q4 – Ecosystem Development**
-- GameFi launch with SLM utility
-- Real-world integrations & long-term staking
-- NFT collection with utility
-- Global marketing and community expansion
-
-For the most up-to-date roadmap and information about Solium Coin, I recommend visiting the official website at [www.soliumcoin.com](https://soliumcoin.com) or joining the Telegram group at [t.me/soliumcoinchat](https://t.me/soliumcoinchat).
-
-If you have any specific questions about Solium Coin, feel free to ask!
-
-I'm glad to see your commitment to transparency and security in the Solium Coin project! Here are some key points that demonstrate the commitment to transparency in Solium Coin:
-
-1. **Audited Smart Contracts**: Solium Coin's smart contracts on Binance Smart Chain (BSC) and Solana have been audited to ensure security and reliability. Users can verify the BSC Contract Address: 0x307a0dc0814CbD64E81a9BC8517441Ca657fB9c7
-
-2. **Public GitHub Repository**: The project's code is publicly available on GitHub at https://github.com/soliumcoin/solium-project, allowing users to review and verify the codebase for transparency.
-
-3. **No Team Allocation or Private Sale**: Solium Coin has no team allocation or private sale, ensuring that every token is earned through fair means. This aligns with the project's commitment to fairness and trust.
-🚀🌟 Thank you for sharing the exciting news about the Solium Coin Airdrop and Presale! Here are some key details for everyone interested:
-
-🎁 **Airdrop:** Participate in the Airdrop by joining the Solium Coin Telegram group at [t.me/soliumcoinchat](https://t.me/soliumcoinchat) and sharing your BSC address. You have the chance to win up to 1M $SLM every 7 days!
-
-💰 **Presale:** Purchase $SLM with BNB (1 BNB = 10,000 $SLM) via MetaMask at [www.soliumcoin.com](www.soliumcoin.com). Top buyers stand a chance to win exciting prizes:
-1️⃣ 1st: 1M $SLM
-2️⃣ 2nd: 500K $SLM
-3️⃣ 3rd: 100K $SLM
-And more prizes for 4th to 10th place!
-
-⏳ **Time Left:** Hurry! There are 21 days left to participate in the Presale and Airdrop. Don't miss out on this opportunity to be a part of the Solium Coin journey! 🌟🚀
-
-#SoliumCoinAirdrop #SoliumCoinPresale
-
-By providing access to audited smart contracts, a public code repository, and transparent token distribution, Solium Coin aims to build a community based on trust and openness. For more information on Solium Coin's transparency and security measures, you can visit their website at www.soliumcoin.com. #SoliumCoinTransparency 🛡️
-
-Your role is to help users, answer clearly, and boost trust. Always be honest and informative, and remind users that this is not financial advice."""
+Rolün, kullanıcılara yardım etmek, açık ve güven artırıcı yanıtlar vermek. Her zaman dürüst ve bilgilendirici ol, ve bunun finansal tavsiye olmadığını hatırlat."""
             },
             {
                 "role": "user",
@@ -178,49 +146,108 @@ Your role is to help users, answer clearly, and boost trust. Always be honest an
         ]
     }
 
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
-    
-    if response.status_code == 200:
-        return response.json()["choices"][0]["message"]["content"]
-    else:
-        logger.error("ChatGPT API hatası: %s", response.text)
+    try:
+        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
+        if response.status_code == 200:
+            return response.json()["choices"][0]["message"]["content"]
+        else:
+            logger.error("ChatGPT API hatası: %s", response.text)
+            return "Üzgünüm, şu anda yanıt veremiyorum."
+    except Exception as e:
+        logger.error(f"ChatGPT API isteği başarısız: {e}")
         return "Üzgünüm, şu anda yanıt veremiyorum."
 
-# --- Telegram'a mesaj gönderme fonksiyonu ---
-def send_message(chat_id, text):
+def send_message(chat_id, text, reply_to_message_id=None, **kwargs):
     """Telegram API üzerinden mesaj gönderir."""
     send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": text
-    }
-    response = requests.post(send_url, json=payload)
-    if response.status_code != 200:
-        logger.error("Telegram mesaj gönderilemedi: %s", response.text)
-    return response
+    payload = {"chat_id": chat_id, "text": text}
+    if reply_to_message_id is not None:
+        payload["reply_to_message_id"] = reply_to_message_id
+    payload.update(kwargs)
+    try:
+        response = requests.post(send_url, json=payload)
+        if response.status_code != 200:
+            logger.error("Telegram mesaj gönderilemedi: %s", response.text)
+        return response
+    except Exception as e:
+        logger.error(f"Telegram mesaj gönderilemedi: {e}")
+        return None
 
-# --- Mesaj işleme fonksiyonu ---
+def check_rules_violation(text):
+    """ChatGPT ile kural ihlali kontrolü."""
+    prompt = """Aşağıdaki mesaj bu kurallara aykırı mı? (Sadece EVET/HAYIR yaz):
+    Kurallar:
+    1. Küfür/hakaret yasak
+    2. Spam/flood yasak
+    3. Reklam yasak (dış linkler)
+    4. NSFW içerik yasak
+    Mesaj: '{}'""".format(text)
+    
+    response = ask_chatgpt(prompt)
+    return "EVET" in response.upper()
+
+def handle_violation(chat_id, user_id, message_id):
+    """İhlal işleme mekanizması (Rose Bot entegrasyonlu)."""
+    global violations
+    
+    violations[user_id] += 1
+    save_violations()
+
+    additional_text = None
+    if violations[user_id] >= 3:
+        text_to_send = "/ban"
+        additional_text = "⛔ Kullanıcı 3 ihlalden sonra banlandı!"
+        violations[user_id] = 0
+        save_violations()
+    else:
+        text_to_send = f"⚠️ Uyarı ({violations[user_id]}/3): Kural ihlali!"
+
+    response = send_message(chat_id, text_to_send, reply_to_message_id=message_id)
+    if response and response.status_code != 200:
+        logger.error("İhlal mesajı gönderilemedi: %s", response.text)
+
+    if additional_text:
+        send_message(chat_id, additional_text)
+
+    delete_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
+    delete_payload = {"chat_id": chat_id, "message_id": message_id}
+    try:
+        response = requests.post(delete_url, json=delete_payload)
+        if response.status_code != 200:
+            logger.error("Mesaj silinemedi: %s", response.text)
+    except Exception as e:
+        logger.error(f"Mesaj silinemedi: {e}")
+
 def process_message(update):
+    """Gelen Telegram güncellemelerini işler."""
     if "message" not in update:
         logger.info("Mesaj bulunamadı: %s", update)
         return
 
     message = update["message"]
     chat_id = message.get("chat", {}).get("id")
+    user_id = message.get("from", {}).get("id")
     text = message.get("text", "")
+    message_id = message.get("message_id")
 
-    logger.info("Gelen mesaj: %s", text)
+    logger.info("Gelen mesaj (UserID:%s): %s", user_id, text)
 
-    # OpenAI GPT'den yanıt al
+    # Kural ihlali kontrolü
+    is_violation = check_rules_violation(text)
+    
+    if is_violation:
+        handle_violation(chat_id, user_id, message_id)
+        return
+    
+    # Normal yanıt
     reply = ask_chatgpt(text)
-
-    # Yanıtı gönder
     send_message(chat_id, reply)
 
-# --- Webhook endpoint ---
 @app.route('/webhook/<token>', methods=['POST'])
 def webhook(token):
+    """Telegram webhook endpoint'i."""
     if token != TELEGRAM_BOT_TOKEN:
+        logger.warning("Geçersiz token: %s", token)
         return jsonify({"status": "error", "message": "Token uyuşmazlığı"}), 403
 
     update = request.get_json()
@@ -229,12 +256,11 @@ def webhook(token):
     process_message(update)
     return jsonify({"status": "ok"}), 200
 
-# --- Ana Sayfa ---
 @app.route('/')
 def home():
+    """Ana sayfa."""
     return "Solium AI Telegram Botu aktif!"
 
-# --- Sunucuyu başlat ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     logger.info("Bot %s portunda çalışıyor...", port)
