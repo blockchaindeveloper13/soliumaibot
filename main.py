@@ -140,7 +140,7 @@ Solium Coin, blockchain alanında devrim yaratmayı amaçlayan çığır açıc�
 3. **Takım için Ayrılmış Token Yok**: Adil bir token dağıtımı.
 
 ### Airdrop ve Ön Satış:
-- **Airdrop:** Telegram grubuna katılın (t.me/soliumcoinchat) ve BSC adresinizi paylaşın. Her 7 günde bir 1M $SLM kazanma şansı!
+- **Airdrop:** Telegram grubuna katılın (t.me/soliumcoinchat) and BSC adresinizi paylaşın. Her 7 günde bir 1M $SLM kazanma şansı!
 - **Ön Satış:** MetaMask ile https://soliumcoin.com adresinden BNB ile $SLM satın alın (1 BNB = 10,000 $SLM). En iyi alıcılar için ödüller:
   - 1.: 1M $SLM
   - 2.: 500K $SLM
@@ -342,7 +342,6 @@ def webhook(token):
 def home():
     """Ana sayfa."""
     return "Solium AI Telegram Botu aktif!"
-
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
