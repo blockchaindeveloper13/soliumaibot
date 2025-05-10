@@ -153,6 +153,19 @@ I'm glad to see your commitment to transparency and security in the Solium Coin 
 2. **Public GitHub Repository**: The project's code is publicly available on GitHub at https://github.com/soliumcoin/solium-project, allowing users to review and verify the codebase for transparency.
 
 3. **No Team Allocation or Private Sale**: Solium Coin has no team allocation or private sale, ensuring that every token is earned through fair means. This aligns with the project's commitment to fairness and trust.
+🚀🌟 Thank you for sharing the exciting news about the Solium Coin Airdrop and Presale! Here are some key details for everyone interested:
+
+🎁 **Airdrop:** Participate in the Airdrop by joining the Solium Coin Telegram group at [t.me/soliumcoinchat](https://t.me/soliumcoinchat) and sharing your BSC address. You have the chance to win up to 1M $SLM every 7 days!
+
+💰 **Presale:** Purchase $SLM with BNB (1 BNB = 10,000 $SLM) via MetaMask at [www.soliumcoin.com](www.soliumcoin.com). Top buyers stand a chance to win exciting prizes:
+1️⃣ 1st: 1M $SLM
+2️⃣ 2nd: 500K $SLM
+3️⃣ 3rd: 100K $SLM
+And more prizes for 4th to 10th place!
+
+⏳ **Time Left:** Hurry! There are 21 days left to participate in the Presale and Airdrop. Don't miss out on this opportunity to be a part of the Solium Coin journey! 🌟🚀
+
+#SoliumCoinAirdrop #SoliumCoinPresale
 
 By providing access to audited smart contracts, a public code repository, and transparent token distribution, Solium Coin aims to build a community based on trust and openness. For more information on Solium Coin's transparency and security measures, you can visit their website at www.soliumcoin.com. #SoliumCoinTransparency 🛡️
 
