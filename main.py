@@ -264,10 +264,9 @@ def check_rules_violation(text):
 
     prompt = """Aşağıdaki mesaj bu kurallara aykırı mı? (Sadece EVET/HAYIR yaz):
     Kurallar:
-    1. Küfür/hakaret yasak
-    2.  Spam: Aynı veya benzer mesajın 1 dakika içinde 3 kezden fazla tekrarlanması, sadece emoji, tek kelime (örneğin, 'Naber', 'Lol') veya rasgele karakter dizileri (örneğin, 'asdjfkl') içeren mesajlar yasaktır. Solium Coin, airdrop, staking, ön satış veya grup kurallarıyla ilgili sorular spam değildir.
-    3. Resmi linkler dışındaki dış linkler yasak
-    4.Solium coin dışında başka bir coinin Reklamını yapmak yasak
+     1. Küfür, hakaret veya uygunsuz dil içeren mesajlar yasaktır.
+    2. https://soliumcoin.com gibi resmi linkler dışındaki harici linkler yasaktır.
+    3. Solium Coin dışında başka bir kripto paranın veya projenin reklamı yasaktır.
     Mesaj: '{}'""".format(text)
     
     logger.info("Kural ihlali kontrolü başlatılıyor: %s", text)
