@@ -5,6 +5,13 @@ from flask import Flask, request, jsonify
 from collections import defaultdict
 import json
 from datetime import datetime
+try:
+    from apscheduler.schedulers.background import BackgroundScheduler
+    from cachetools import TTLCache
+except ImportError:
+    BackgroundScheduler = None
+    TTLCache = None
+    logging.warning("apscheduler veya cachetools eksik, otomatik mesajlar devre dışı.")
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -25,10 +32,11 @@ violations = defaultdict(int)
 try:
     with open(VIOLATIONS_FILE, "r") as f:
         violations.update(json.load(f))
+    logger.info("İhlal dosyası yüklendi.")
 except FileNotFoundError:
     logger.info("İhlal dosyası bulunamadı, yeni oluşturulacak.")
 except Exception as e:
-    logger.error(f"İhlal dosyası yüklenemedi: {e}")
+    logger.warning(f"İhlal dosyası yüklenemedi, varsayılan kullanılıyor: {e}")
 
 # Solium Coin resmi linkleri için beyaz liste
 WHITELIST_LINKS = [
@@ -50,8 +58,9 @@ def save_violations():
     try:
         with open(VIOLATIONS_FILE, "w") as f:
             json.dump(dict(violations), f)
+        logger.info("İhlal dosyası kaydedildi.")
     except Exception as e:
-        logger.error(f"İhlal dosyası kaydedilemedi: {e}")
+        logger.warning(f"İhlal dosyası kaydedilemedi, geçici dosya sistemi sorunu: {e}")
 
 def ask_chatgpt(message):
     """OpenAI ChatGPT API kullanarak yanıt döner."""
@@ -59,8 +68,7 @@ def ask_chatgpt(message):
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
     }
-   INTRODUCTION_MESSAGE = """
-You are a helpful assistant bot for Solium Coin, answering users' questions about the project. Your first response should always be in English, but if users speak another language, reply in that language. Introduce Solium Coin, explain its features, and answer questions accurately, helpfully, and in a friendly manner. Here’s what you need to know:
+    INTRODUCTION_MESSAGE = """You are a helpful assistant bot for Solium Coin, answering users' questions about the project. Your first response should always be in English, but if users speak another language, reply in that language. Introduce Solium Coin, explain its features, and answer questions accurately, helpfully, and in a friendly manner. Here’s what you need to know:
 
 ### Basic Information:
 - Project: **Solium Coin (SLM)**
@@ -151,14 +159,8 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
     data = {
         "model": "gpt-3.5-turbo",
         "messages": [
-            {
-                "role": "system",
-                "content": INTRODUCTION_MESSAGE
-            },
-            {
-                "role": "user",
-                "content": message
-            }
+            {"role": "system", "content": INTRODUCTION_MESSAGE},
+            {"role": "user", "content": message}
         ]
     }
     try:
@@ -248,18 +250,15 @@ def delete_message(chat_id, message_id):
 
 def check_rules_violation(text):
     """ChatGPT ile kural ihlali kontrolü, beyaz listedeki linkleri hariç tutar."""
-    # Beyaz listedeki linkleri kontrol et
     for link in WHITELIST_LINKS:
         if link.lower() in text.lower():
             logger.info("Beyaz listedeki link tespit edildi: %s", link)
             return False
 
-    # Boş veya kısa mesajları ihlal dışı tut
     if not text or len(text.strip()) < 5:
         logger.info("Boş veya çok kısa mesaj, ihlal kontrolü atlandı: %s", text)
         return False
 
-    # Masum selamlaşma ve Solium Coin ile ilgili mesajları filtrele
     safe_phrases = ["nasılsın", "merhaba", "selam", "naber", "hi", "hello", "good morning"]
     solium_terms = ["solium", "slm", "airdrop", "presale", "staking"]
     if any(phrase in text.lower() for phrase in safe_phrases) or any(term in text.lower() for term in solium_terms):
@@ -322,7 +321,6 @@ def process_message(update):
     user_id = message.get("from", {}).get("id")
     message_id = message.get("message_id")
 
-    # Yeni üye olayı
     if "new_chat_members" in message:
         welcome = """Welcome to the Solium Coin group! 🚀 
 Check the airdrop: /airdrop
@@ -332,7 +330,6 @@ Got questions? Ask away! 😎"""
         logger.info("Yeni üye hoş geldin mesajı gönderildi: UserID:%s", user_id)
         return
 
-    # Normal mesajlar için text kontrolü
     text = message.get("text", "")
     if not text:
         logger.info("Boş veya metinsiz mesaj, ihlal kontrolü atlandı: UserID:%s", user_id)
@@ -340,7 +337,6 @@ Got questions? Ask away! 😎"""
 
     logger.info("Gelen mesaj (UserID:%s): %s", user_id, text)
 
-    # Komutlar
     if text.lower() == "/rules":
         rules = """**Group Rules**:
 1. No profanity, insults, or inappropriate language.
@@ -368,15 +364,51 @@ More info: https://soliumcoin.com"""
             send_message(chat_id, "Usage: /resetviolations <user_id>", reply_to_message_id=message_id)
         return
 
-    # Kural ihlali kontrolü
     is_violation = check_rules_violation(text)
     if is_violation:
         handle_violation(chat_id, user_id, message_id)
         return
     
-    # Normal yanıt
     reply = ask_chatgpt(text)
     send_message(chat_id, reply, reply_to_message_id=message_id)
+
+# Kanal için otomatik mesajlar
+if BackgroundScheduler and TTLCache:
+    CHANNEL_ID = "@soliumcoin"  # veya sayısal ID
+    message_cache = TTLCache(maxsize=100, ttl=86400)
+
+    def get_context():
+        return "Airdrop’a 2 gün kaldı, ön satış 50% tamamlandı, staking yakında başlıyor."
+
+    def send_airdrop_reminder():
+        if "airdrop_reminder" not in message_cache:
+            context = get_context()
+            message = ask_chatgpt(f"Remind the Solium Coin airdrop in a witty way, encourage joining. Context: {context}")
+            message_cache["airdrop_reminder"] = message
+        send_message(CHANNEL_ID, message_cache["airdrop_reminder"])
+        logger.info("Airdrop hatırlatma gönderildi: %s", message_cache["airdrop_reminder"])
+
+    def send_presale_update():
+        if "presale_update" not in message_cache:
+            context = get_context()
+            message = ask_chatgpt(f"Promote Solium Coin presale or staking plans briefly and energetically. Note 1 BNB = 10,000 SLM. Context: {context}")
+            message_cache["presale_update"] = message
+        send_message(CHANNEL_ID, message_cache["presale_update"])
+        logger.info("Ön satış/staking güncelleme gönderildi: %s", message_cache["presale_update"])
+
+    def send_trend_motivation():
+        if "trend_motivation" not in message_cache:
+            context = get_context()
+            message = ask_chatgpt(f"Summarize Solium Coin trends on X in a witty way or motivate the community with Web3 spirit. Context: {context}")
+            message_cache["trend_motivation"] = message
+        send_message(CHANNEL_ID, message_cache["trend_motivation"])
+        logger.info("Trend/motivasyon mesajı gönderildi: %s", message_cache["trend_motivation"])
+
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(send_airdrop_reminder, 'cron', hour=9, minute=0)
+    scheduler.add_job(send_presale_update, 'cron', hour=13, minute=0)
+    scheduler.add_job(send_trend_motivation, 'cron', hour=20, minute=0)
+    scheduler.start()
 
 @app.route('/webhook/<token>', methods=['POST'])
 def webhook(token):
@@ -387,7 +419,11 @@ def webhook(token):
 
     update = request.get_json()
     logger.info("Webhook geldi: %s", update)
-    process_message(update)
+    try:
+        process_message(update)
+    except Exception as e:
+        logger.error(f"Webhook işleme hatası: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "ok"}), 200
 
 @app.route('/')
