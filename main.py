@@ -59,12 +59,8 @@ def ask_chatgpt(message):
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
     }
-    data = {
-        "model": "gpt-3.5-turbo",
-        "messages": [
-            {
-                "role": "system",
-                "content": """You are a helpful assistant bot for Solium Coin, answering users' questions about the project. Your first response should always be in English, but if users speak another language, reply in that language. Introduce Solium Coin, explain its features, and answer questions accurately, helpfully, and in a friendly manner. Here’s what you need to know:
+   INTRODUCTION_MESSAGE = """
+You are a helpful assistant bot for Solium Coin, answering users' questions about the project. Your first response should always be in English, but if users speak another language, reply in that language. Introduce Solium Coin, explain its features, and answer questions accurately, helpfully, and in a friendly manner. Here’s what you need to know:
 
 ### Basic Information:
 - Project: **Solium Coin (SLM)**
@@ -152,8 +148,17 @@ Solium Coin is a groundbreaking cryptocurrency project aiming to revolutionize t
   - 4th-10th: Additional rewards!
 
 Your role is to assist users, act as a group moderator, and provide clear, trust-building responses. Always be honest, informative, and remind users that this is not financial advice and that Solium Coin is not available for sale to Americans or Canadians."""
+    data = {
+        "model": "gpt-3.5-turbo",
+        "messages": [
+            {
+                "role": "system",
+                "content": INTRODUCTION_MESSAGE
             },
-            {"role": "user", "content": message}
+            {
+                "role": "user",
+                "content": message
+            }
         ]
     }
     try:
@@ -249,17 +254,31 @@ def check_rules_violation(text):
             logger.info("Beyaz listedeki link tespit edildi: %s", link)
             return False
 
-    # Boş veya çok kısa mesajları ihlal dışı tut
-    if not text or len(text.strip()) < 3:
+    # Boş veya kısa mesajları ihlal dışı tut
+    if not text or len(text.strip()) < 5:
         logger.info("Boş veya çok kısa mesaj, ihlal kontrolü atlandı: %s", text)
+        return False
+
+    # Masum selamlaşma ve Solium Coin ile ilgili mesajları filtrele
+    safe_phrases = ["nasılsın", "merhaba", "selam", "naber", "hi", "hello", "good morning"]
+    solium_terms = ["solium", "slm", "airdrop", "presale", "staking"]
+    if any(phrase in text.lower() for phrase in safe_phrases) or any(term in text.lower() for term in solium_terms):
+        logger.info("Masum veya Solium Coin ile ilgili mesaj, ihlal kontrolü atlandı: %s", text)
         return False
 
     prompt = """Does the following message violate these rules? (Write only YES/NO):
 Rules:
-1. Profanity, insults, or inappropriate language are prohibited (e.g., 'stupid', 'damn').
-2. External links other than official Solium Coin links (e.g., https://soliumcoin.com) are prohibited.
-3. Promoting cryptocurrencies or projects other than Solium Coin is prohibited (e.g., 'Buy Bitcoin', 'Ethereum is great').
-4. Empty messages, system notifications, or group join events are not violations.
+1. External links other than official Solium Coin links (e.g., https://soliumcoin.com, t.me/soliumcoinchat) are prohibited.
+2. Promoting cryptocurrencies or projects other than Solium Coin is prohibited (e.g., 'Buy Bitcoin', 'Ethereum is great').
+3. Profanity, insults, or inappropriate language are prohibited (e.g., 'stupid', 'damn', 'fuck').
+4. Empty messages, system notifications, group join events, or casual greetings (e.g., 'nasılsın', 'merhaba') are NOT violations.
+Examples:
+- 'Nasılsın' -> NO
+- 'Merhaba' -> NO
+- 'Buy Ethereum now!' -> YES
+- 'Check out https://example.com' -> YES
+- 'You idiot!' -> YES
+- 'Solium airdrop ne zaman?' -> NO
 Message: '{}'
 """.format(text)
 
@@ -287,7 +306,7 @@ def handle_violation(chat_id, user_id, message_id):
         violations[user_id] = 0
         save_violations()
     else:
-        text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Your message may contain profanity, external links, or other crypto promotions. Check /rules."
+        text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Your message may contain profanity, unauthorized links, or other crypto promotions. Please review /rules."
         logger.info("Uyarı mesajı gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
         delete_message(chat_id, message_id)
