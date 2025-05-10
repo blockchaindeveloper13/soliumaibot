@@ -209,13 +209,12 @@ Your role is to help users, answer clearly, and boost trust. Always be honest an
         return "Üzgünüm, şu anda yanıt veremiyorum."
 
 # --- Telegram'a mesaj gönderme fonksiyonu ---
-def send_message(chat_id, text):
-    """Telegram API üzerinden mesaj gönderir."""
+def send_message(chat_id, text, reply_to_message_id=None, **kwargs):
     send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": text
-    }
+    payload = {"chat_id": chat_id, "text": text}
+    if reply_to_message_id:
+        payload["reply_to_message_id"] = reply_to_message_id
+    payload.update(kwargs)
     response = requests.post(send_url, json=payload)
     if response.status_code != 200:
         logger.error("Telegram mesaj gönderilemedi: %s", response.text)
@@ -284,7 +283,7 @@ def handle_violation(chat_id, user_id, message_id):
         "text": text_to_send,
         "reply_to_message_id": message_id
     }
-    send_message(reply_payload)
+    send_message(chat_id, text_to_send, reply_to_message_id=message_id)
 
     # Ek mesaj varsa gönder (örneğin, ban mesajı için)
     if additional_text:
