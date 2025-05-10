@@ -203,7 +203,7 @@ def handle_violation(chat_id, user_id, message_id):
 
     additional_text = None
     if violations[user_id] >= 3:
-        text_to_send = "/dban"  # Rose Bot'un hem ban hem silme komutu
+        text_to_send = "/ban"  # Rose Bot'un hem ban hem silme komutu
         additional_text = "⛔ Kullanıcı 3 ihlalden sonra banlandı!"
         logger.info("Ban komutu gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
