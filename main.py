@@ -2,30 +2,16 @@ import os
 import logging
 import requests
 from flask import Flask, request, jsonify
-from collections import defaultdict
-import json
 
+app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
+# Ortam değişkenlerinden tokenları çekelim.
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
-app = Flask(__name__)
-
-VIOLATIONS_FILE = "violations.json"
-violations = defaultdict(int)
-
-try:
-    with open(VIOLATIONS_FILE, "r") as f:
-        violations.update(json.load(f))
-except FileNotFoundError:
-    pass
-
-def save_violations():
-    with open(VIOLATIONS_FILE, "w") as f:
-        json.dump(violations, f)
-
+# --- ChatGPT'den yanıt alma fonksiyonu ---
 def ask_chatgpt(message):
     """OpenAI ChatGPT API kullanarak yanıt döner."""
     headers = {
@@ -127,7 +113,7 @@ Solium Coin offers several key advantages that set it apart from other projects 
 
 4. **Community-Driven:** Solium Coin is backed by a passionate and growing community of crypto enthusiasts who are actively involved in shaping the project's development. By joining this community, you can engage with like-minded individuals and be part of the future of finance.
 
-If you're interested in exploring the future of finance with Solium Coin, consider participating in the Airdrop and Presale to get involved early. You can join the community on Telegram at t.me/soliumcoinchat and learn more about the project at [invalid url, do not cite] #SoliumCoin #Crypto
+If you're interested in exploring the future of finance with Solium Coin, consider participating in the Airdrop and Presale to get involved early. You can join the community on Telegram at t.me/soliumcoinchat and learn more about the project at https://soliumcoin.com. #SoliumCoin #Crypto
 
 It seems like there might be a confusion in the roadmap timeline you provided. As of my last update, the roadmap for Solium Coin was as follows:
 
@@ -192,7 +178,7 @@ Your role is to help users, answer clearly, and boost trust. Always be honest an
         ]
     }
 
-    response = requests.post("[invalid url, do not cite]" headers=headers, json=data)
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
     
     if response.status_code == 200:
         return response.json()["choices"][0]["message"]["content"]
@@ -200,17 +186,20 @@ Your role is to help users, answer clearly, and boost trust. Always be honest an
         logger.error("ChatGPT API hatası: %s", response.text)
         return "Üzgünüm, şu anda yanıt veremiyorum."
 
-def send_message(chat_id, text, reply_to_message_id=None, **kwargs):
-    send_url = f"[invalid url, do not cite]
-    payload = {"chat_id": chat_id, "text": text}
-    if reply_to_message_id is not None:
-        payload["reply_to_message_id"] = reply_to_message_id
-    payload.update(kwargs)
+# --- Telegram'a mesaj gönderme fonksiyonu ---
+def send_message(chat_id, text):
+    """Telegram API üzerinden mesaj gönderir."""
+    send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text
+    }
     response = requests.post(send_url, json=payload)
     if response.status_code != 200:
         logger.error("Telegram mesaj gönderilemedi: %s", response.text)
     return response
 
+# --- Mesaj işleme fonksiyonu ---
 def process_message(update):
     if "message" not in update:
         logger.info("Mesaj bulunamadı: %s", update)
@@ -218,59 +207,17 @@ def process_message(update):
 
     message = update["message"]
     chat_id = message.get("chat", {}).get("id")
-    user_id = message.get("from", {}).get("id")
     text = message.get("text", "")
-    message_id = message.get("message_id")
 
-    logger.info("Gelen mesaj (UserID:%s): %s", user_id, text)
+    logger.info("Gelen mesaj: %s", text)
 
-    is_violation = check_rules_violation(text)
-    
-    if is_violation:
-        handle_violation(chat_id, user_id, message_id)
-        return
-    
+    # OpenAI GPT'den yanıt al
     reply = ask_chatgpt(text)
+
+    # Yanıtı gönder
     send_message(chat_id, reply)
 
-def check_rules_violation(text):
-    prompt = """Aşağıdaki mesaj bu kurallara aykırı mı? (Sadece EVET/HAYIR yaz):
-    Kurallar:
-    1. Küfür/hakaret yasak
-    2. Spam/flood yasak
-    3. Reklam yasak (dış linkler)
-    4. NSFW içerik yasak
-    Mesaj: '{}'""".format(text)
-    
-    response = ask_chatgpt(prompt)
-    return "EVET" in response.upper()
-
-def handle_violation(chat_id, user_id, message_id):
-    global violations
-    
-    violations[user_id] += 1
-    save_violations()
-
-    additional_text = None
-    if violations[user_id] >= 3:
-        text_to_send = "/ban"
-        additional_text = "⛔ User banned after 3 violations"
-        violations[user_id] = 0
-        save_violations()
-    else:
-        text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Rule violation!"
-
-    send_message(chat_id, text_to_send, reply_to_message_id=message_id)
-
-    if additional_text:
-        send_message(chat_id, additional_text)
-
-    delete_url = f"[invalid url, do not cite]
-    delete_payload = {"chat_id": chat_id, "message_id": message_id}
-    response = requests.post(delete_url, json=delete_payload)
-    if response.status_code != 200:
-        logger.error("Mesaj silinemedi: %s", response.text)
-
+# --- Webhook endpoint ---
 @app.route('/webhook/<token>', methods=['POST'])
 def webhook(token):
     if token != TELEGRAM_BOT_TOKEN:
@@ -282,10 +229,12 @@ def webhook(token):
     process_message(update)
     return jsonify({"status": "ok"}), 200
 
+# --- Ana Sayfa ---
 @app.route('/')
 def home():
     return "Solium AI Telegram Botu aktif!"
 
+# --- Sunucuyu başlat ---
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     logger.info("Bot %s portunda çalışıyor...", port)
