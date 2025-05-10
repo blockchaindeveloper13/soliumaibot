@@ -4,6 +4,7 @@ import requests
 from flask import Flask, request, jsonify
 from collections import defaultdict
 import json
+import time
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -209,6 +210,9 @@ def handle_violation(chat_id, user_id, message_id):
     if additional_text:
         send_message(chat_id, additional_text)
 
+    # Mesaj silme işlemini 5 saniye geciktir
+    time.sleep(5)
+    
     delete_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
     delete_payload = {"chat_id": chat_id, "message_id": message_id}
     try:
