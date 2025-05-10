@@ -33,10 +33,15 @@ except Exception as e:
 # Solium Coin resmi linkleri için beyaz liste
 WHITELIST_LINKS = [
     "https://soliumcoin.com",
+    "soliumcoin.com",
+    "@soliumcoinowner",
+    "@soliumcoin",
+    "@soliumcoinchat",
     "t.me/soliumcoinchat",
     "t.me/soliumcoin",
     "https://x.com/soliumcoin",
     "https://github.com/soliumcoin/solium-project",
+    "https://github.com/soliumcoin",
     "https://medium.com/@soliumcoin"
 ]
 
@@ -165,10 +170,10 @@ Rolün, kullanıcılara yardım etmek, açık ve güven artırıcı yanıtlar ve
             return response.json()["choices"][0]["message"]["content"]
         else:
             logger.error("ChatGPT API hatası: %s", response.text)
-            return "Üzgünüm, şu anda yanıt veremiyorum."
+            return "Sorry, I can't answer right now."
     except Exception as e:
         logger.error(f"ChatGPT API isteği başarısız: {e}")
-        return "Üzgünüm, şu anda yanıt veremiyorum."
+        return "Sorry, I can't answer right now."
 
 def send_message(chat_id, text, reply_to_message_id=None, **kwargs):
     """Telegram API üzerinden mesaj gönderir."""
@@ -284,7 +289,7 @@ def handle_violation(chat_id, user_id, message_id):
     save_violations()
 
     if violations[user_id] >= 3:
-        text_to_send = "⛔ Kullanıcı 3 ihlalden sonra banlandı!"
+        text_to_send = "⛔User banned after 3 violations !"
         logger.info("Ban işlemi başlatılıyor: UserID:%s, ChatID:%s", user_id, chat_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
         # Kullanıcıyı banla
@@ -294,7 +299,7 @@ def handle_violation(chat_id, user_id, message_id):
         violations[user_id] = 0
         save_violations()
     else:
-        text_to_send = f"⚠️ Uyarı ({violations[user_id]}/3): Kural ihlali!"
+        text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Rule violation!"
         logger.info("Uyarı mesajı gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
         # Mesajı sil
