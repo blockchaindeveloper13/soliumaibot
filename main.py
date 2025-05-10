@@ -179,6 +179,44 @@ def send_message(chat_id, text, reply_to_message_id=None, **kwargs):
         logger.error(f"Telegram mesaj gönderilemedi: {e}")
         return None
 
+def ban_user(chat_id, user_id):
+    """Telegram API üzerinden kullanıcıyı banlar."""
+    ban_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/banChatMember"
+    payload = {
+        "chat_id": chat_id,
+        "user_id": user_id
+    }
+    try:
+        logger.info("Kullanıcı banlanıyor: UserID:%s, ChatID:%s", user_id, chat_id)
+        response = requests.post(ban_url, json=payload)
+        if response.status_code != 200:
+            logger.error("Kullanıcı banlanamadı: %s", response.text)
+        else:
+            logger.info("Kullanıcı başarıyla banlandı: UserID:%s", user_id)
+        return response
+    except Exception as e:
+        logger.error(f"Kullanıcı banlanamadı: {e}")
+        return None
+
+def delete_message(chat_id, message_id):
+    """Telegram API üzerinden mesajı siler."""
+    delete_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id
+    }
+    try:
+        logger.info("Mesaj siliniyor: MessageID:%s, ChatID:%s", message_id, chat_id)
+        response = requests.post(delete_url, json=payload)
+        if response.status_code != 200:
+            logger.error("Mesaj silinemedi: %s", response.text)
+        else:
+            logger.info("Mesaj başarıyla silindi: MessageID:%s", message_id)
+        return response
+    except Exception as e:
+        logger.error(f"Mesaj silinemedi: {e}")
+        return None
+
 def check_rules_violation(text):
     """ChatGPT ile kural ihlali kontrolü."""
     prompt = """Aşağıdaki mesaj bu kurallara aykırı mı? (Sadece EVET/HAYIR yaz):
@@ -195,26 +233,28 @@ def check_rules_violation(text):
     return "EVET" in response.upper()
 
 def handle_violation(chat_id, user_id, message_id):
-    """İhlal işleme mekanizması (Rose Bot entegrasyonlu)."""
+    """İhlal işleme mekanizması."""
     global violations
     
     violations[user_id] += 1
     save_violations()
 
-    additional_text = None
     if violations[user_id] >= 3:
-        text_to_send = "/ban"  # Rose Bot'un hem ban hem silme komutu
-        additional_text = "⛔ Kullanıcı 3 ihlalden sonra banlandı!"
-        logger.info("Ban komutu gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
+        text_to_send = "⛔ Kullanıcı 3 ihlalden sonra banlandı!"
+        logger.info("Ban işlemi başlatılıyor: UserID:%s, ChatID:%s", user_id, chat_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
-        if additional_text:
-            send_message(chat_id, additional_text)
+        # Kullanıcıyı banla
+        ban_user(chat_id, user_id)
+        # Mesajı sil
+        delete_message(chat_id, message_id)
         violations[user_id] = 0
         save_violations()
     else:
         text_to_send = f"⚠️ Uyarı ({violations[user_id]}/3): Kural ihlali!"
         logger.info("Uyarı mesajı gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
+        # Mesajı sil
+        delete_message(chat_id, message_id)
 
 def process_message(update):
     """Gelen Telegram güncellemelerini işler."""
