@@ -281,10 +281,29 @@ def handle_violation(chat_id, user_id, message_id):
         logger.error("Mesaj silinemedi: %s", e)
     
     # 4. 3. ihlalde ban
+ihlalde ban (GÜNCELLENMİŞ KISIM)
     if violations[user_id] >= 3:
-        send_message(chat_id, f"/ban {user_id}")  # Rose Bot komutu
-        violations[user_id] = 0  # Sayaç sıfırla
+        # Kullanıcı bilgilerini çek
+        user_info = get_user_info(user_id)
+        if user_info:
+            username = user_info.get('username', '')
+            # Rose Bot için doğru format: "/ban @kullanıcıadı" veya "/ban user_id"
+            ban_command = f"/ban @{username}" if username else f"/ban {user_id}"
+            send_message(chat_id, ban_command)
+        
+        violations[user_id] = 0
         save_violations()
+
+def get_user_info(user_id):
+    """Kullanıcı bilgilerini Telegram API'den al"""
+    try:
+        url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChat"
+        response = requests.post(url, json={"chat_id": user_id})
+        if response.status_code == 200:
+            return response.json().get('result', {})
+    except Exception as e:
+        logger.error(f"Kullanıcı bilgisi alınamadı: {e}")
+    return None
 
 # --- Webhook endpoint ---
 @app.route('/webhook/<token>', methods=['POST'])
