@@ -337,6 +337,16 @@ Got questions? Ask away! 😎"""
 
     logger.info("Gelen mesaj (UserID:%s): %s", user_id, text)
 
+    if text.lower() == "/start":
+    keyboard = [
+        [{"text": "🌍 Website", "url": "https://soliumcoin.com"}],
+        [{"text": "📢 Telegram Group", "url": "https://t.me/soliumcoinchat"}]
+    ]
+    reply_markup = {"inline_keyboard": keyboard}
+    welcome_msg = "🚀 Welcome to **Solium AI Bot**! Click below for official links:"
+    send_message(chat_id, welcome_msg, reply_markup=json.dumps(reply_markup))
+    return
+
     if text.lower() == "/rules":
         rules = """**Group Rules**:
 1. No profanity, insults, or inappropriate language.
