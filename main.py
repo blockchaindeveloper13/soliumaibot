@@ -337,7 +337,7 @@ Got questions? Ask away! 😎"""
 
     logger.info("Gelen mesaj (UserID:%s): %s", user_id, text)
 
-   if text.lower() == "/start":
+if text.lower() == "/start":
     keyboard = [
         [{"text": "🌍 Website", "url": "https://soliumcoin.com"}],
         [{"text": "📢 Telegram Group", "url": "https://t.me/soliumcoinchat"}]
