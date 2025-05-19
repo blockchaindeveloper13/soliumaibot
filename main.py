@@ -176,7 +176,7 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
         logger.error(f"ChatGPT API isteği başarısız: {e}")
         return "Sorry, I can't answer right now."
 
-def send_message(chat_id, text, reply_markup=None, reply_to_message_id=None, parse_mode="Markdown"):
+def send_message(chat_id, text, reply_to_message_id=None, parse_mode="Markdown"):
     """Telegram API üzerinden mesaj gönderir."""
     send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -337,16 +337,6 @@ Got questions? Ask away! 😎"""
 
     logger.info("Gelen mesaj (UserID:%s): %s", user_id, text)
 
-if text.lower() == "/start":
-    keyboard = [
-        [{"text": "🌍 Website", "url": "https://soliumcoin.com"}],
-        [{"text": "📢 Telegram Group", "url": "https://t.me/soliumcoinchat"}]
-    ]
-    reply_markup = {"inline_keyboard": keyboard}
-    welcome_msg = "🚀 Welcome to **Solium AI Bot**! Click below for official links:"
-    send_message(chat_id, welcome_msg, reply_markup=reply_markup)  # json.dumps() KULLANMAYIN
-    return
-       
     if text.lower() == "/rules":
         rules = """**Group Rules**:
 1. No profanity, insults, or inappropriate language.
