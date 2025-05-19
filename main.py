@@ -176,7 +176,7 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
         logger.error(f"ChatGPT API isteği başarısız: {e}")
         return "Sorry, I can't answer right now."
 
-def send_message(chat_id, text, reply_to_message_id=None, parse_mode="Markdown"):
+def send_message(chat_id, text, reply_markup=None, reply_to_message_id=None, parse_mode="Markdown"):
     """Telegram API üzerinden mesaj gönderir."""
     send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
