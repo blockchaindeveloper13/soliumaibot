@@ -404,7 +404,7 @@ Got questions? Ask away! 😎"""
         return
 
     if text.lower() == "/rewards":
-        airdrop_info = """**Solium REWARDS**:
+        airdrop_info = """**Solium Community REWARDS**:
 - Total: 10,000,000 SLM (10% of supply).
 - Join: https://t.me/+KDhk3UEwZAg3MmU0, .
 - Distribution: 1M SLM every 7 days!
@@ -441,7 +441,7 @@ if BackgroundScheduler and TTLCache:
     def send_airdrop_reminder():
         if "airdrop_reminder" not in message_cache:
             context = get_context()
-            message = ask_chatgpt(f"Remind the Solium REWARDS in a witty way, encourage joining. Context: {context}")
+            message = ask_chatgpt(f"Remind the Solium Community REWARDS in a witty way, encourage joining. Context: {context}")
             message_cache["airdrop_reminder"] = message
         send_message(CHANNEL_ID, message_cache["airdrop_reminder"])
         logger.info("Airdrop reminder sent: %s", message_cache["airdrop_reminder"])
