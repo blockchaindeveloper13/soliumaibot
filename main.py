@@ -47,7 +47,6 @@ WHITELIST_LINKS = [
     "@soliumcoinowner",
     "@soliumcoin",
     "https://t.me/+KDhk3UEwZAg3MmU0",
-    "https://t.me/+KDhk3UEwZAg3MmU0",
     "t.me/soliumcoin",
     "https://x.com/soliumcoin",
     "https://github.com/soliumcoin/solium-project",
@@ -94,6 +93,7 @@ def ask_chatgpt(message):
    - Text: 'Ask a Question 💡', callback_data: 'ask_question'
    - Text: 'Fun Fact ❓', callback_data: 'fun_fact'
    - Text: 'Try Something Fun 🎲', callback_data: 'try_fun'
+   - Text: 'Take a Challenge 🎯', callback_data: 'take_challenge'
 
 6. When user asks about Solium (e.g., 'What is Solium?'):
    Include this note:
@@ -103,15 +103,15 @@ def ask_chatgpt(message):
 - Project: **Solium (SLM)**
 - Total Supply: 100,000,000 SLM
 - Presale: 50,000,000 SLM (50%)
-- Airdrop: 10,000,000 SLM (10%)
+- Community Rewards: 10,000,000 SLM (10%)
 - Blockchain: Binance Smart Chain (BSC) and Solana
-- BSC Contract Address: 0x307a0dc0814CbD64E81a9BC8517441Ca657fB9c7
-- Solana Contract Address: 9rFLChxL7444pp1ykat7eoaFh76BiLEZNXUvn9Fpump
+- BSC Contract Address: Not publicly shared in bot responses
+- Solana Contract Address: Not publicly shared in bot responses
 
 ### Tokenomics:
 - Presale: 50M SLM (50%)
 - Liquidity: 20M SLM (20%)
-- Airdrop: 10M SLM (10%)
+- Community Rewards: 10M SLM (10%)
 - Staking: 10M SLM (10%)
 - GameFi & Rewards: 10M SLM (10%)
 
@@ -228,14 +228,14 @@ def check_rules_violation(text):
         return False
 
     safe_phrases = ["nasılsın", "merhaba", "selam", "naber", "hi", "hello", "good morning"]
-    solium_terms = ["solium", "slm", "airdrop", "presale", "staking"]
+    solium_terms = ["solium", "slm", "rewards", "presale", "staking"]
     if any(phrase in text.lower() for phrase in safe_phrases) or any(term in text.lower() for term in solium_terms):
         logger.info("Safe or Solium-related message, violation check skipped: %s", text)
         return False
 
     prompt = """Does the following message violate these rules? (Write only YES/NO):
 Rules:
-1. External links other than official Solium links (e.g., https://soliumcoin.com, t.me/https://t.me/+KDhk3UEwZAg3MmU0) are prohibited.
+1. External links other than official Solium links (e.g., https://soliumcoin.com, https://t.me/+KDhk3UEwZAg3MmU0) are prohibited.
 2. Promoting cryptocurrencies or projects other than Solium is prohibited (e.g., 'Buy Bitcoin', 'Ethereum is great').
 3. Profanity, insults, or inappropriate language are prohibited (e.g., 'stupid', 'damn', 'fuck').
 4. Empty messages, system notifications, group join events, or casual greetings (e.g., 'nasılsın', 'merhaba') are NOT violations.
@@ -245,7 +245,7 @@ Examples:
 - 'Buy Ethereum now!' -> YES
 - 'Check out https://example.com' -> YES
 - 'You idiot!' -> YES
-- 'Solium airdrop ne zaman?' -> NO
+- 'Solium rewards ne zaman?' -> NO
 Message: '{}'
 """.format(text)
 
@@ -279,6 +279,7 @@ def handle_violation(chat_id, user_id, message_id):
         delete_message(chat_id, message_id)
 
 def process_callback_query(update):
+    """Process callback queries (inline button clicks)."""
     callback = update["callback_query"]
     chat_id = callback["message"]["chat"]["id"]
     message_id = callback["message"]["message_id"]
@@ -337,6 +338,7 @@ def process_callback_query(update):
         f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery",
         json={"callback_query_id": callback["id"]}
     )
+
 def process_message(update):
     """Process incoming Telegram updates."""
     if "message" not in update and "callback_query" not in update:
@@ -354,7 +356,7 @@ def process_message(update):
 
     if "new_chat_members" in message:
         welcome = """Welcome to the Solium group! 🚀 
-Check the airdrop: /rewards
+Check the rewards: /rewards
 Read the rules: /rules
 Got questions? Ask away! 😎"""
         send_message(chat_id, welcome)
@@ -418,9 +420,9 @@ Got questions? Ask away! 😎"""
     if text.lower() == "/rewards":
         airdrop_info = """**Solium Community Rewards**:
 - Total: 10,000,000 SLM (10% of supply).
-- Join: https://t.me/+KDhk3UEwZAg3MmU0
+- Join: https://t.me/+KDhk3UEwZAg3MmU0 to participate.
 - Distribution: 1M SLM every 7 days!
-More info: Ask me or join https://t.me/+KDhk3UEwZAg3MmU0! 😄"""
+More info: Ask me or join @SoliumCommunity! 😄"""
         send_message(chat_id, airdrop_info, reply_to_message_id=message_id)
         return
 
@@ -434,6 +436,15 @@ More info: Ask me or join https://t.me/+KDhk3UEwZAg3MmU0! 😄"""
             send_message(chat_id, "Usage: /resetviolations <user_id>", reply_to_message_id=message_id)
         return
 
+    if "😺" in text:
+        response = ask_chatgpt("User sent a cat emoji 😺. Suggest a fun, creative activity or idea based on this emoji.")
+        send_message(chat_id, response, reply_to_message_id=message_id)
+        return
+    if any(word in text.lower() for word in ["phone", "knife", "water"]):
+        response = ask_chatgpt(f"User chose {text} for a desert island challenge. Comment on their choices creatively!")
+        send_message(chat_id, response, reply_to_message_id=message_id)
+        return
+
     is_violation = check_rules_violation(text)
     if is_violation:
         handle_violation(chat_id, user_id, message_id)
@@ -444,19 +455,19 @@ More info: Ask me or join https://t.me/+KDhk3UEwZAg3MmU0! 😄"""
 
 # Automated messages for channel
 if BackgroundScheduler and TTLCache:
-    CHANNEL_ID = "@soliumcoin"
+    CHANNEL_ID = "@SoliumCommunity"
     message_cache = TTLCache(maxsize=100, ttl=86400)
 
     def get_context():
-        return "Airdrop in 2 days, presale 50% complete, staking coming soon."
+        return "Rewards in 2 days, presale 50% complete, staking coming soon."
 
-    def send_airdrop_reminder():
-        if "airdrop_reminder" not in message_cache:
+    def send_rewards_reminder():
+        if "rewards_reminder" not in message_cache:
             context = get_context()
-            message = ask_chatgpt(f"Remind the Solium Community Rewards in a witty way, encourage joining. Context: {context}")
-            message_cache["airdrop_reminder"] = message
-        send_message(CHANNEL_ID, message_cache["airdrop_reminder"])
-        logger.info("Airdrop reminder sent: %s", message_cache["airdrop_reminder"])
+            message = ask_chatgpt(f"Remind the Solium Community Rewards in a witty way, encourage joining @SoliumCommunity. Context: {context}")
+            message_cache["rewards_reminder"] = message
+        send_message(CHANNEL_ID, message_cache["rewards_reminder"])
+        logger.info("Rewards reminder sent: %s", message_cache["rewards_reminder"])
 
     def send_presale_update():
         if "presale_update" not in message_cache:
@@ -475,7 +486,7 @@ if BackgroundScheduler and TTLCache:
         logger.info("Trend/motivation message sent: %s", message_cache["trend_motivation"])
 
     scheduler = BackgroundScheduler()
-    scheduler.add_job(send_airdrop_reminder, 'cron', hour=9, minute=0)
+    scheduler.add_job(send_rewards_reminder, 'cron', hour=9, minute=0)
     scheduler.add_job(send_presale_update, 'cron', hour=13, minute=0)
     scheduler.add_job(send_trend_motivation, 'cron', hour=20, minute=0)
     scheduler.start()
