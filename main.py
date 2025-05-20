@@ -278,7 +278,6 @@ def handle_violation(chat_id, user_id, message_id):
         delete_message(chat_id, message_id)
 
 def process_callback_query(update):
-    """Process callback queries (inline button clicks)."""
     callback = update["callback_query"]
     chat_id = callback["message"]["chat"]["id"]
     message_id = callback["message"]["message_id"]
@@ -290,7 +289,6 @@ def process_callback_query(update):
             "Awesome! 😄 What's on your mind? Type your question, and let's dive in!",
             reply_to_message_id=message_id
         )
-        # Bot waits for next message and processes it with ask_chatgpt
     elif callback_data == "what_is_solium":
         reply_markup = {
             "inline_keyboard": [[{"text": "Ask Me Anything 💡", "callback_data": "ask_question"}]]
@@ -302,6 +300,12 @@ def process_callback_query(update):
             reply_markup=reply_markup
         )
     elif callback_data == "fun_fact":
+        facts = [
+            "Honey never spoils! 🐝",
+            "Octopuses have three hearts! 🐙",
+            "The shortest war in history lasted 38 minutes! ⏱️"
+        ]
+        fact = random.choice(facts)
         reply_markup = {
             "inline_keyboard": [
                 [{"text": "Another Fact ❓", "callback_data": "fun_fact"}],
@@ -310,7 +314,7 @@ def process_callback_query(update):
         }
         send_message(
             chat_id,
-            "Here's a fun fact! 😎 Did you know octopuses have three hearts? 🐙 Want another?",
+            f"Fun Fact: {fact} Want another? 😄",
             reply_to_message_id=message_id,
             reply_markup=reply_markup
         )
@@ -320,14 +324,18 @@ def process_callback_query(update):
             "Let's have some fun! 😺 Send an emoji, tell me something you love, or share a random idea, and I'll whip up something special!",
             reply_to_message_id=message_id
         )
-        # Bot waits for next message and processes it with ask_chatgpt
+    elif callback_data == "take_challenge":
+        send_message(
+            chat_id,
+            "Take a Challenge! 🎯 You're stranded on a desert island. Name 3 items you'd bring (e.g., phone, knife, water). Type your answer!",
+            reply_to_message_id=message_id
+        )
 
     # Notify Telegram that callback query was processed
     requests.post(
         f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery",
         json={"callback_query_id": callback["id"]}
     )
-
 def process_message(update):
     """Process incoming Telegram updates."""
     if "message" not in update and "callback_query" not in update:
