@@ -423,7 +423,7 @@ if BackgroundScheduler and TTLCache:
     scheduler.add_job(send_trend_motivation, 'cron', hour=20, minute=0)
     scheduler.start()
 
-@app.route('/webhook/<token>', methods=['POST'])
+@app.route('/webhook', methods=['POST'])
 def webhook(token):
     """Telegram webhook endpoint'i."""
     if token != TELEGRAM_BOT_TOKEN:
