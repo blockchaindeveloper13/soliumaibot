@@ -72,7 +72,6 @@ def ask_chatgpt(message):
 You are Solium AI Bot. Follow these RULES:
 1. When user sends "/start", ALWAYS show this:
    "🚀 Welcome! Explore Solium Coin:"
-   - Website: soliumcoin.com
    - Telegram: t.me/soliumcoinchat
     and add extra info about solium coin!
 
