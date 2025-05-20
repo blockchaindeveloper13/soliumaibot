@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import logging
 import requests
@@ -11,34 +12,34 @@ try:
 except ImportError:
     BackgroundScheduler = None
     TTLCache = None
-    logging.warning("apscheduler veya cachetools eksik, otomatik mesajlar devre dışı.")
+    logging.warning("apscheduler or cachetools missing, automated messages disabled.")
 
 app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
 
-# Ortam değişkenleri
+# Environment variables
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
 if not TELEGRAM_BOT_TOKEN or not OPENAI_API_KEY:
-    logger.error("TELEGRAM_BOT_TOKEN veya OPENAI_API_KEY eksik!")
-    raise ValueError("Gerekli ortam değişkenleri ayarlanmamış!")
+    logger.error("TELEGRAM_BOT_TOKEN or OPENAI_API_KEY missing!")
+    raise ValueError("Required environment variables not set!")
 
-# İhlal Takip Sistemi
+# Violation Tracking System
 VIOLATIONS_FILE = "violations.json"
 violations = defaultdict(int)
 
 try:
     with open(VIOLATIONS_FILE, "r") as f:
         violations.update(json.load(f))
-    logger.info("İhlal dosyası yüklendi.")
+    logger.info("Violation file loaded.")
 except FileNotFoundError:
-    logger.info("İhlal dosyası bulunamadı, yeni oluşturulacak.")
+    logger.info("Violation file not found, will create new.")
 except Exception as e:
-    logger.warning(f"İhlal dosyası yüklenemedi, varsayılan kullanılıyor: {e}")
+    logger.warning(f"Failed to load violation file, using default: {e}")
 
-# Solium Coin beyaz liste linkleri
+# Solium whitelist links
 WHITELIST_LINKS = [
     "https://soliumcoin.com",
     "soliumcoin.com",
@@ -54,16 +55,16 @@ WHITELIST_LINKS = [
 ]
 
 def save_violations():
-    """İhlal verilerini dosyaya kaydeder."""
+    """Save violation data to file."""
     try:
         with open(VIOLATIONS_FILE, "w") as f:
             json.dump(dict(violations), f)
-        logger.info("İhlal dosyası kaydedildi.")
+        logger.info("Violation file saved.")
     except Exception as e:
-        logger.warning(f"İhlal dosyası kaydedilemedi, geçici dosya sistemi sorunu: {e}")
+        logger.warning(f"Failed to save violation file, temporary filesystem issue: {e}")
 
 def ask_chatgpt(message):
-    """OpenAI ChatGPT API kullanarak yanıt döner."""
+    """Return response using OpenAI ChatGPT API."""
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
@@ -71,31 +72,31 @@ def ask_chatgpt(message):
     INTRODUCTION_MESSAGE = """You are a friendly AI assistant bot, primarily designed to answer questions about Solium but also capable of responding to *any* prompt users throw at you, from technical topics to fun, random curiosities. Your goal is to provide an exceptional user experience, keeping responses clear, engaging, and professional. Start in English, but switch to the user's language (e.g., Türkçe) if they use another one. All responses should go through the AI engine unless explicitly specified, to maintain the chatbot’s natural, prompt-driven nature. Follow these RULES:
 
 1. When user sends '/start', ALWAYS show this:
-   'Merhaba! 🤖 Ben Solium Support AI, aklındaki *her şeyi* konuşmaya hazır bir yapay zekâ asistanıyım! 🚀 Solium (SLM) veya başka bir konuda, ne istersen sor! 😄'
+   'Hello! 🤖 I'm Solium Support AI, ready to chat about *anything* on your mind! 🚀 Ask about Solium (SLM) or any other topic! 😄'
    Inline buttons:
-   - Text: 'What is Solium?❓', callback_data: 'what_is_solium'
-   - Text: 'Ask Me Anything  💡', callback_data: 'ask_question'
+   - Text: 'What is Solium? ❓', callback_data: 'what_is_solium'
+   - Text: 'Ask Me Anything 💡', callback_data: 'ask_question'
    - Text: 'Join Community 💬', url: 'https://t.me/soliumcoinchat'
    - Commands:
    - /askmeanything
 
-2. When providing info about Solium, use a neutral, informative tone, focusing on its Web3-based features like transparency, decentralization, staking, and DAO governance. Avoid speculative or investment-related claims (e.g., "guaranteed profits" or "revolutionary"). Always include the note '(Solium, bazı bölgelerde kullanılamaz: ABD, Kanada, OFAC yaptırım listesindeki ülkeler.)' when answering Solium-related questions. Example: 'Solium (SLM), şeffaflık ve topluluk yönetimine odaklanan bir Web3 projesidir. Staking ve DAO gibi özellikler sunar. (Solium, bazı bölgelerde kullanılamaz: ABD, Kanada, OFAC yaptırım listesindeki ülkeler.)'
+2. When providing info about Solium, use a neutral, informative tone, focusing on its Web3-based features like transparency, decentralization, staking, and DAO governance. Avoid speculative or investment-related claims (e.g., "guaranteed profits" or "revolutionary"). Always include the note '(Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)' when answering Solium-related questions. Example: 'Solium (SLM) is a Web3 project focused on transparency and community governance, offering features like staking and DAO. (Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)'
 
 3. Encourage user interaction with prompts or inline buttons like [What is Solium?] [Ask a Question] [Community]. Inline buttons should feel like a natural extension of the chatbot’s prompt-driven nature, not rigid commands, and should not bypass the AI engine unless necessary.
 
 4. Ensure responses are professional, avoid hashtags (e.g., #Solium), excessive emojis, or aggressive promotional language.
 
 5. When user sends '/askmeanything', ALWAYS show this:
-   'Evet! 🎉 *Her Şeyi Sor* modundasın! Ciddi, komik, rastgele, ne istersen sor, hemen cevaplayayım! 😄 Bana bir prompt at, başlıyoruz! 
-   (Ör: “Yapay zekâ nasıl çalışır?”, “Bana bi’ espri yap!” veya “Hafta sonu ne yapsam?”)'
+   'Yes! 🎉 You're in *Ask Me Anything* mode! Serious, funny, or totally random—I'm ready for any question! 😄 Throw me a prompt, let's go! 
+   (Ex: "How does AI work?", "Tell me a joke!", or "What should I do this weekend?")'
    Inline buttons:
-   - Text: ' Ask a Question💡', callback_data: 'ask_question'
+   - Text: 'Ask a Question 💡', callback_data: 'ask_question'
    - Text: 'Fun Fact ❓', callback_data: 'fun_fact'
    - Text: 'Try Something Fun 🎲', callback_data: 'try_fun'
 
 6. When user asks about Solium (e.g., 'What is Solium?'):
    Include this note:
-   '(Solium, bazı bölgelerde kullanılamaz: ABD, Kanada, OFAC yaptırım listesindeki ülkeler.)'
+   '(Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)'
 
 ### Basic Information:
 - Project: **Solium (SLM)**
@@ -128,20 +129,20 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
         ]
     }
     try:
-        logger.info("ChatGPT API isteği gönderiliyor: %s", datetime.now())
+        logger.info("ChatGPT API request sent: %s", datetime.now())
         response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
         if response.status_code == 200:
-            logger.info("ChatGPT API yanıtı alındı: %s", datetime.now())
+            logger.info("ChatGPT API response received: %s", datetime.now())
             return response.json()["choices"][0]["message"]["content"]
         else:
-            logger.error("ChatGPT API hatası: %s", response.text)
+            logger.error("ChatGPT API error: %s", response.text)
             return "Sorry, I can't answer right now."
     except Exception as e:
-        logger.error(f"ChatGPT API isteği başarısız: {e}")
+        logger.error(f"ChatGPT API request failed: {e}")
         return "Sorry, I can't answer right now."
 
 def send_message(chat_id, text, reply_to_message_id=None, reply_markup=None, parse_mode="Markdown"):
-    """Telegram API üzerinden mesaj gönderir."""
+    """Send message via Telegram API."""
     send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": chat_id,
@@ -153,82 +154,82 @@ def send_message(chat_id, text, reply_to_message_id=None, reply_markup=None, par
     if reply_markup:
         payload["reply_markup"] = reply_markup
     try:
-        logger.info("Telegram mesajı gönderiliyor: %s", text)
+        logger.info("Sending Telegram message: %s", text)
         response = requests.post(send_url, json=payload)
         if response.status_code != 200:
-            logger.error("Telegram mesaj gönderilemedi: %s", response.text)
+            logger.error("Failed to send Telegram message: %s", response.text)
         else:
-            logger.info("Telegram mesajı gönderildi: %s", text)
+            logger.info("Telegram message sent: %s", text)
         return response
     except Exception as e:
-        logger.error(f"Telegram mesaj gönderilemedi: {e}")
+        logger.error(f"Failed to send Telegram message: {e}")
         return None
 
 def is_user_admin(chat_id, user_id):
-    """Kullanıcının yönetici olup olmadığını kontrol eder."""
+    """Check if user is an admin."""
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/getChatMember"
     payload = {"chat_id": chat_id, "user_id": user_id}
     try:
-        logger.info("Yönetici kontrolü: UserID:%s, ChatID:%s", user_id, chat_id)
+        logger.info("Checking admin status: UserID:%s, ChatID:%s", user_id, chat_id)
         response = requests.post(url, json=payload)
         if response.status_code == 200:
             member_info = response.json().get("result", {})
             status = member_info.get("status")
             is_admin = status in ["administrator", "creator"]
-            logger.info("Yönetici kontrol sonucu: UserID:%s, Admin:%s", user_id, is_admin)
+            logger.info("Admin check result: UserID:%s, Admin:%s", user_id, is_admin)
             return is_admin
         else:
-            logger.error("Yönetici kontrolü başarısız: %s", response.text)
+            logger.error("Admin check failed: %s", response.text)
             return False
     except Exception as e:
-        logger.error(f"Yönetici kontrolü başarısız: {e}")
+        logger.error(f"Admin check failed: {e}")
         return False
 
 def ban_user(chat_id, user_id):
-    """Telegram API üzerinden kullanıcıyı banlar."""
+    """Ban user via Telegram API."""
     ban_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/banChatMember"
     payload = {"chat_id": chat_id, "user_id": user_id}
     try:
-        logger.info("Kullanıcı banlanıyor: UserID:%s, ChatID:%s", user_id, chat_id)
+        logger.info("Banning user: UserID:%s, ChatID:%s", user_id, chat_id)
         response = requests.post(ban_url, json=payload)
         if response.status_code != 200:
-            logger.error("Kullanıcı banlanamadı: %s", response.text)
+            logger.error("Failed to ban user: %s", response.text)
         else:
-            logger.info("Kullanıcı başarıyla banlandı: UserID:%s", user_id)
+            logger.info("User banned successfully: UserID:%s", user_id)
         return response
     except Exception as e:
-        logger.error(f"Kullanıcı banlanamadı: {e}")
+        logger.error(f"Failed to ban user: {e}")
         return None
 
 def delete_message(chat_id, message_id):
-    """Telegram API üzerinden mesajı siler."""
+    """Delete message via Telegram API."""
     delete_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
     payload = {"chat_id": chat_id, "message_id": message_id}
     try:
-        logger.info("Mesaj siliniyor: MessageID:%s, ChatID:%s", message_id, chat_id)
+        logger.info("Deleting message: MessageID:%s, ChatID:%s", message_id, chat_id)
         response = requests.post(delete_url, json=payload)
         if response.status_code == 200:
-            logger.info("Mesaj başarıyla silindi: MessageID:%s", message_id)
+            logger.info("Message deleted successfully: MessageID:%s", message_id)
         else:
-            logger.warning("Mesaj silinemedi: %s", response.text)
+            logger.warning("Failed to delete message: %s", response.text)
     except Exception as e:
-        logger.warning(f"Mesaj silinemedi: {e}")
+        logger.warning(f"Failed to delete message: {e}")
 
 def check_rules_violation(text):
-    """ChatGPT ile kural ihlali kontrolü, beyaz listedeki linkleri hariç tutar."""
+    """Check for rule violations using ChatGPT, excluding whitelisted links."""
     for link in WHITELIST_LINKS:
         if link.lower() in text.lower():
-            logger.info("Beyaz listedeki link tespit edildi: %s", link)
+            logger.info("Whitelisted link detected: %s", link)
             return False
 
     if not text or len(text.strip()) < 5:
-        logger.info("Boş veya çok kısa mesaj, ihlal kontrolü atlandı: %s", text)
+        logger.info("Empty or too short message, violation check skipped: %s", text)
         return False
 
     safe_phrases = ["nasılsın", "merhaba", "selam", "naber", "hi", "hello", "good morning"]
     solium_terms = ["solium", "slm", "airdrop", "presale", "staking"]
     if any(phrase in text.lower() for phrase in safe_phrases) or any(term in text.lower() for term in solium_terms):
-        logger.info("Masum veya Solium ile ilgili mesaj, ihlal kontrolü atlandı: %s", text)
+        logger.info("Safe or Solium-related message, violation check skipped: %s", text)
         return False
 
     prompt = """Does the following message violate these rules? (Write only YES/NO):
@@ -247,16 +248,16 @@ Examples:
 Message: '{}'
 """.format(text)
 
-    logger.info("Kural ihlali kontrolü başlatılıyor: %s", text)
+    logger.info("Starting rule violation check: %s", text)
     response = ask_chatgpt(prompt)
-    logger.info("Kural ihlali kontrol sonucu: %s için %s", text, response)
+    logger.info("Rule violation check result: %s for %s", response, text)
     return "YES" in response.upper()
 
 def handle_violation(chat_id, user_id, message_id):
-    """İhlal işleme mekanizması, yöneticileri hariç tutar."""
+    """Handle rule violations, excluding admins."""
     global violations
     if is_user_admin(chat_id, user_id):
-        logger.info("Yönetici tespit edildi, ihlal işlemi uygulanmadı: UserID:%s", user_id)
+        logger.info("Admin detected, violation action skipped: UserID:%s", user_id)
         return
 
     violations[user_id] += 1
@@ -264,7 +265,7 @@ def handle_violation(chat_id, user_id, message_id):
 
     if violations[user_id] >= 3:
         text_to_send = "⛔ User banned after 3 violations! Contact @soliumcoin for support."
-        logger.info("Ban işlemi başlatılıyor: UserID:%s, ChatID:%s", user_id, chat_id)
+        logger.info("Banning user: UserID:%s, ChatID:%s", user_id, chat_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
         ban_user(chat_id, user_id)
         delete_message(chat_id, message_id)
@@ -272,12 +273,12 @@ def handle_violation(chat_id, user_id, message_id):
         save_violations()
     else:
         text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Your message may contain profanity, unauthorized links, or other crypto promotions. Please review /rules."
-        logger.info("Uyarı mesajı gönderiliyor: %s, Kullanıcı ID: %s", text_to_send, user_id)
+        logger.info("Sending warning: %s, UserID: %s", text_to_send, user_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
         delete_message(chat_id, message_id)
 
 def process_callback_query(update):
-    """Callback query'leri (inline buton tıklamaları) işler."""
+    """Process callback queries (inline button clicks)."""
     callback = update["callback_query"]
     chat_id = callback["message"]["chat"]["id"]
     message_id = callback["message"]["message_id"]
@@ -289,22 +290,22 @@ def process_callback_query(update):
             "Awesome! 😄 What's on your mind? Type your question, and let's dive in!",
             reply_to_message_id=message_id
         )
-        # Bot, sonraki mesajı bekler ve ask_chatgpt ile işler
+        # Bot waits for next message and processes it with ask_chatgpt
     elif callback_data == "what_is_solium":
         reply_markup = {
-            "inline_keyboard": [[{"text": "Bana Her Şeyi Sor 💡", "callback_data": "ask_question"}]]
+            "inline_keyboard": [[{"text": "Ask Me Anything 💡", "callback_data": "ask_question"}]]
         }
         send_message(
             chat_id,
-            Solium (SLM) is a Web3 project focused on transparency and community governance, offering features like staking and DAO. 😊 (Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.) What else are you curious about?"",
+            "Solium (SLM) is a Web3 project focused on transparency and community governance, offering features like staking and DAO. 😊 (Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.) What else are you curious about?",
             reply_to_message_id=message_id,
             reply_markup=reply_markup
         )
     elif callback_data == "fun_fact":
         reply_markup = {
             "inline_keyboard": [
-                [{"text": "Başka Bir Bilgi ❓", "callback_data": "fun_fact"}],
-                [{"text": "Soru Sor 💡", "callback_data": "ask_question"}]
+                [{"text": "Another Fact ❓", "callback_data": "fun_fact"}],
+                [{"text": "Ask a Question 💡", "callback_data": "ask_question"}]
             ]
         }
         send_message(
@@ -319,18 +320,18 @@ def process_callback_query(update):
             "Let's have some fun! 😺 Send an emoji, tell me something you love, or share a random idea, and I'll whip up something special!",
             reply_to_message_id=message_id
         )
-        # Bot, sonraki mesajı bekler ve ask_chatgpt ile işler
+        # Bot waits for next message and processes it with ask_chatgpt
 
-    # Callback query'nin işlendiğini Telegram'a bildir
+    # Notify Telegram that callback query was processed
     requests.post(
         f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery",
         json={"callback_query_id": callback["id"]}
     )
 
 def process_message(update):
-    """Gelen Telegram güncellemelerini işler."""
+    """Process incoming Telegram updates."""
     if "message" not in update and "callback_query" not in update:
-        logger.info("Mesaj veya callback query bulunamadı: %s", update)
+        logger.info("No message or callback query found: %s", update)
         return
 
     if "callback_query" in update:
@@ -348,29 +349,29 @@ Check the airdrop: /airdrop
 Read the rules: /rules
 Got questions? Ask away! 😎"""
         send_message(chat_id, welcome)
-        logger.info("Yeni üye hoş geldin mesajı gönderildi: UserID:%s", user_id)
+        logger.info("New member welcome message sent: UserID:%s", user_id)
         return
 
     text = message.get("text", "")
     if not text:
-        logger.info("Boş veya metinsiz mesaj, ihlal kontrolü atlandı: UserID:%s", user_id)
+        logger.info("Empty or non-text message, violation check skipped: UserID:%s", user_id)
         return
 
-    logger.info("Gelen mesaj (UserID:%s): %s", user_id, text)
+    logger.info("Received message (UserID:%s): %s", user_id, text)
 
     if text.lower() == "/start":
         reply_markup = {
             "inline_keyboard": [
                 [
-                    {"text": "What is solium? ❓", "callback_data": "what_is_solium"},
+                    {"text": "What is Solium? ❓", "callback_data": "what_is_solium"},
                     {"text": "Ask Me Anything 💡", "callback_data": "ask_question"}
                 ],
-                [{"text": "Join The Community 💬", "url": "https://t.me/soliumcoinchat"}]
+                [{"text": "Join Community 💬", "url": "https://t.me/soliumcoinchat"}]
             ]
         }
         send_message(
             chat_id,
-            "Merhaba! 🤖 Ben Solium Support AI, aklındaki *her şeyi* konuşmaya hazır bir yapay zekâ asistanıyım! 🚀 Solium (SLM) veya başka bir konuda, ne istersen sor! 😄",
+            "Hello! 🤖 I'm Solium Support AI, ready to chat about *anything* on your mind! 🚀 Ask about Solium (SLM) or any other topic! 😄",
             reply_to_message_id=message_id,
             reply_markup=reply_markup
         )
@@ -380,15 +381,15 @@ Got questions? Ask away! 😎"""
         reply_markup = {
             "inline_keyboard": [
                 [
-                    {"text": "Bir Soru Sor 💡", "callback_data": "ask_question"},
-                    {"text": "İlginç Bilgi ❓", "callback_data": "fun_fact"}
+                    {"text": "Ask a Question 💡", "callback_data": "ask_question"},
+                    {"text": "Fun Fact ❓", "callback_data": "fun_fact"}
                 ],
-                [{"text": "Eğlenceli Bir Şey Dene 🎲", "callback_data": "try_fun"}]
+                [{"text": "Try Something Fun 🎲", "callback_data": "try_fun"}]
             ]
         }
         send_message(
             chat_id,
-            "Yes! 🎉 You're in *Ask Me Anything* mode! Serious, funny, or totally random—I'm ready for any question! 😄 Throw me a prompt, let's get started! \n(For Example: “How does AI work?", "Tell me a joke!", or "What should I do this weekend?”)",
+            "Yes! 🎉 You're in *Ask Me Anything* mode! Serious, funny, or totally random—I'm ready for any question! 😄 Throw me a prompt, let's go! \n(Ex: 'How does AI work?', 'Tell me a joke!', or 'What should I do this weekend?')",
             reply_to_message_id=message_id,
             reply_markup=reply_markup
         )
@@ -397,7 +398,7 @@ Got questions? Ask away! 😎"""
     if text.lower() == "/rules":
         rules = """**Group Rules**:
 1. No profanity, insults, or inappropriate language.
-2. Only official Solium links (e.g., https://soliumcoin.com, t.me/soliumcoinchat) are allowed.
+2. Only official Solium links (e.g., t.me/soliumcoinchat) are allowed.
 3. Promoting other cryptocurrencies or projects is prohibited."""
         send_message(chat_id, rules, reply_to_message_id=message_id)
         return
@@ -407,7 +408,7 @@ Got questions? Ask away! 😎"""
 - Total: 10,000,000 SLM (10% of supply).
 - Join: t.me/soliumcoinchat, share your BSC address.
 - Distribution: 1M SLM every 7 days!
-More info: https://soliumcoin.com"""
+More info: Ask me or join @soliumcoinchat! 😄"""
         send_message(chat_id, airdrop_info, reply_to_message_id=message_id)
         return
 
@@ -429,13 +430,13 @@ More info: https://soliumcoin.com"""
     reply = ask_chatgpt(text)
     send_message(chat_id, reply, reply_to_message_id=message_id)
 
-# Kanal için otomatik mesajlar
+# Automated messages for channel
 if BackgroundScheduler and TTLCache:
     CHANNEL_ID = "@soliumcoin"
     message_cache = TTLCache(maxsize=100, ttl=86400)
 
     def get_context():
-        return "Airdrop’a 2 gün kaldı, ön satış 50% tamamlandı, staking yakında başlıyor."
+        return "Airdrop in 2 days, presale 50% complete, staking coming soon."
 
     def send_airdrop_reminder():
         if "airdrop_reminder" not in message_cache:
@@ -443,7 +444,7 @@ if BackgroundScheduler and TTLCache:
             message = ask_chatgpt(f"Remind the Solium airdrop in a witty way, encourage joining. Context: {context}")
             message_cache["airdrop_reminder"] = message
         send_message(CHANNEL_ID, message_cache["airdrop_reminder"])
-        logger.info("Airdrop hatırlatma gönderildi: %s", message_cache["airdrop_reminder"])
+        logger.info("Airdrop reminder sent: %s", message_cache["airdrop_reminder"])
 
     def send_presale_update():
         if "presale_update" not in message_cache:
@@ -451,7 +452,7 @@ if BackgroundScheduler and TTLCache:
             message = ask_chatgpt(f"Promote Solium presale or staking plans briefly and energetically. Note 1 BNB = 10,000 SLM. Context: {context}")
             message_cache["presale_update"] = message
         send_message(CHANNEL_ID, message_cache["presale_update"])
-        logger.info("Ön satış/staking güncelleme gönderildi: %s", message_cache["presale_update"])
+        logger.info("Presale/staking update sent: %s", message_cache["presale_update"])
 
     def send_trend_motivation():
         if "trend_motivation" not in message_cache:
@@ -459,7 +460,7 @@ if BackgroundScheduler and TTLCache:
             message = ask_chatgpt(f"Summarize Solium trends on X in a witty way or motivate the community with Web3 spirit. Context: {context}")
             message_cache["trend_motivation"] = message
         send_message(CHANNEL_ID, message_cache["trend_motivation"])
-        logger.info("Trend/motivasyon mesajı gönderildi: %s", message_cache["trend_motivation"])
+        logger.info("Trend/motivation message sent: %s", message_cache["trend_motivation"])
 
     scheduler = BackgroundScheduler()
     scheduler.add_job(send_airdrop_reminder, 'cron', hour=9, minute=0)
@@ -469,19 +470,19 @@ if BackgroundScheduler and TTLCache:
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    """Telegram webhook endpoint'i."""
+    """Telegram webhook endpoint."""
     update = request.get_json()
-    logger.info("Webhook geldi: %s", update)
+    logger.info("Webhook received: %s", update)
     try:
         process_message(update)
     except Exception as e:
-        logger.error(f"Webhook işleme hatası: {e}")
+        logger.error(f"Webhook processing error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "ok"}), 200
 
 @app.route('/')
 def home():
-    """Ana sayfa."""
+    """Homepage."""
     return "Solium AI Telegram Bot is active!"
 
 if __name__ == '__main__':
