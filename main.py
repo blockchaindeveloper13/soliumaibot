@@ -345,7 +345,7 @@ def process_message(update):
 
     if "new_chat_members" in message:
         welcome = """Welcome to the Solium group! 🚀 
-Check the airdrop: /airdrop
+Check the airdrop: /rewards
 Read the rules: /rules
 Got questions? Ask away! 😎"""
         send_message(chat_id, welcome)
@@ -403,7 +403,7 @@ Got questions? Ask away! 😎"""
         send_message(chat_id, rules, reply_to_message_id=message_id)
         return
 
-    if text.lower() == "/airdrop":
+    if text.lower() == "/rewards":
         airdrop_info = """**Solium Airdrop**:
 - Total: 10,000,000 SLM (10% of supply).
 - Join: https://t.me/+KDhk3UEwZAg3MmU0, .
