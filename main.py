@@ -72,30 +72,22 @@ def ask_chatgpt(message):
     INTRODUCTION_MESSAGE = """You are a friendly AI assistant bot, primarily designed to answer questions about Solium but also capable of responding to *any* prompt users throw at you, from technical topics to fun, random curiosities. Your goal is to provide an exceptional user experience, keeping responses clear, engaging, and professional. Start in English, but switch to the user's language (e.g., Türkçe) if they use another one. All responses should go through the AI engine unless explicitly specified, to maintain the chatbot’s natural, prompt-driven nature. Follow these RULES:
 
 1. When user sends '/start', ALWAYS show this:
-   'Hello! 🤖 I'm Solium Support AI, ready to chat about *anything* on your mind! 🚀 Ask about Solium (SLM) or any other topic! 😄'
+   'Hello! 🤖 I'm Solium Support AI, ready to chat about *anything* on your mind! 🚀 Ask about Solium (SLM), explore fun facts, or take a challenge! 😄'
    Inline buttons:
    - Text: 'What is Solium? ❓', callback_data: 'what_is_solium'
-   - Text: 'Ask Me Anything 💡', callback_data: 'ask_question'
-   - Text: 'Join Community 💬', url: 'https://t.me/+KDhk3UEwZAg3MmU0'
-   - Commands:
-   - /askmeanything
-
-2. When providing info about Solium, use a neutral, informative tone, focusing on its Web3-based features like transparency, decentralization, staking, and DAO governance. Avoid speculative or investment-related claims (e.g., "guaranteed profits" or "revolutionary"). Always include the note '(Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)' when answering Solium-related questions. Example: 'Solium (SLM) is a Web3 project focused on transparency and community governance, offering features like staking and DAO. (Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)'
-
-3. Encourage user interaction with prompts or inline buttons like [What is Solium?] [Ask a Question] [Community]. Inline buttons should feel like a natural extension of the chatbot’s prompt-driven nature, not rigid commands, and should not bypass the AI engine unless necessary.
-
-4. Ensure responses are professional, avoid hashtags (e.g., #Solium), excessive emojis, or aggressive promotional language.
-
-5. When user sends '/askmeanything', ALWAYS show this:
-   'Yes! 🎉 You're in *Ask Me Anything* mode! Serious, funny, or totally random—I'm ready for any question! 😄 Throw me a prompt, let's go! 
-   (Ex: "How does AI work?", "Tell me a joke!", or "What should I do this weekend?")'
-   Inline buttons:
    - Text: 'Ask a Question 💡', callback_data: 'ask_question'
    - Text: 'Fun Fact ❓', callback_data: 'fun_fact'
    - Text: 'Try Something Fun 🎲', callback_data: 'try_fun'
    - Text: 'Take a Challenge 🎯', callback_data: 'take_challenge'
+   - Text: 'Join Community 💬', url: 'https://t.me/+KDhk3UEwZAg3MmU0'
 
-6. When user asks about Solium (e.g., 'What is Solium?'):
+2. When providing info about Solium, use a neutral, informative tone, focusing on its Web3-based features like transparency, decentralization, staking, and DAO governance. Avoid speculative or investment-related claims (e.g., "guaranteed profits" or "revolutionary"). Always include the note '(Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)' when answering Solium-related questions. Example: 'Solium (SLM) is a Web3 project focused on transparency and community governance, offering features like staking and DAO. (Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)'
+
+3. Encourage user interaction with prompts or inline buttons. Inline buttons should feel like a natural extension of the chatbot’s prompt-driven nature, not rigid commands, and should not bypass the AI engine unless necessary.
+
+4. Ensure responses are professional, avoid hashtags (e.g., #Solium), excessive emojis, or aggressive promotional language.
+
+5. When user asks about Solium (e.g., 'What is Solium?'):
    Include this note:
    '(Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)'
 
@@ -293,7 +285,17 @@ def process_callback_query(update):
         )
     elif callback_data == "what_is_solium":
         reply_markup = {
-            "inline_keyboard": [[{"text": "Ask Me Anything 💡", "callback_data": "ask_question"}]]
+            "inline_keyboard": [
+                [
+                    {"text": "Ask a Question 💡", "callback_data": "ask_question"},
+                    {"text": "Fun Fact ❓", "callback_data": "fun_fact"}
+                ],
+                [
+                    {"text": "Try Something Fun 🎲", "callback_data": "try_fun"},
+                    {"text": "Take a Challenge 🎯", "callback_data": "take_challenge"}
+                ],
+                [{"text": "Join Community 💬", "url": "https://t.me/+KDhk3UEwZAg3MmU0"}]
+            ]
         }
         send_message(
             chat_id,
@@ -311,7 +313,8 @@ def process_callback_query(update):
         reply_markup = {
             "inline_keyboard": [
                 [{"text": "Another Fact ❓", "callback_data": "fun_fact"}],
-                [{"text": "Ask a Question 💡", "callback_data": "ask_question"}]
+                [{"text": "Ask a Question 💡", "callback_data": "ask_question"}],
+                [{"text": "Join Community 💬", "url": "https://t.me/+KDhk3UEwZAg3MmU0"}]
             ]
         }
         send_message(
@@ -375,35 +378,21 @@ Got questions? Ask away! 😎"""
             "inline_keyboard": [
                 [
                     {"text": "What is Solium? ❓", "callback_data": "what_is_solium"},
-                    {"text": "Ask Me Anything 💡", "callback_data": "ask_question"}
-                ],
-                [{"text": "Join Community 💬", "url": "https://t.me/+KDhk3UEwZAg3MmU0"}]
-            ]
-        }
-        send_message(
-            chat_id,
-            "Hello! 🤖 I'm Solium Support AI, ready to chat about *anything* on your mind! 🚀 Ask about Solium (SLM) or any other topic! 😄",
-            reply_to_message_id=message_id,
-            reply_markup=reply_markup
-        )
-        return
-
-    if text.lower() == "/askmeanything":
-        reply_markup = {
-            "inline_keyboard": [
-                [
-                    {"text": "Ask a Question 💡", "callback_data": "ask_question"},
-                    {"text": "Fun Fact ❓", "callback_data": "fun_fact"}
+                    {"text": "Ask a Question 💡", "callback_data": "ask_question"}
                 ],
                 [
-                    {"text": "Try Something Fun 🎲", "callback_data": "try_fun"},
-                    {"text": "Take a Challenge 🎯", "callback_data": "take_challenge"}
+                    {"text": "Fun Fact ❓", "callback_data": "fun_fact"},
+                    {"text": "Try Something Fun 🎲", "callback_data": "try_fun"}
+                ],
+                [
+                    {"text": "Take a Challenge 🎯", "callback_data": "take_challenge"},
+                    {"text": "Join Community 💬", "url": "https://t.me/+KDhk3UEwZAg3MmU0"}
                 ]
             ]
         }
         send_message(
             chat_id,
-            "Yes! 🎉 You're in *Ask Me Anything* mode! Serious, funny, or totally random—I'm ready for any question! 😄 Throw me a prompt, let's go! \n(Ex: 'How does AI work?', 'Tell me a joke!', or 'What should I do this weekend?')",
+            "Hello! 🤖 I'm Solium Support AI, ready to chat about *anything* on your mind! 🚀 Ask about Solium (SLM), explore fun facts, or take a challenge! 😄",
             reply_to_message_id=message_id,
             reply_markup=reply_markup
         )
