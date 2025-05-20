@@ -45,8 +45,8 @@ WHITELIST_LINKS = [
     "soliumcoin.com",
     "@soliumcoinowner",
     "@soliumcoin",
-    "@soliumcoinchat",
-    "t.me/soliumcoinchat",
+    "@https://t.me/+KDhk3UEwZAg3MmU0",
+    "t.me/https://t.me/+KDhk3UEwZAg3MmU0",
     "t.me/soliumcoin",
     "https://x.com/soliumcoin",
     "https://github.com/soliumcoin/solium-project",
@@ -76,7 +76,7 @@ def ask_chatgpt(message):
    Inline buttons:
    - Text: 'What is Solium? ❓', callback_data: 'what_is_solium'
    - Text: 'Ask Me Anything 💡', callback_data: 'ask_question'
-   - Text: 'Join Community 💬', url: 'https://t.me/soliumcoinchat'
+   - Text: 'Join Community 💬', url: 'https://t.me/+KDhk3UEwZAg3MmU0'
    - Commands:
    - /askmeanything
 
@@ -234,7 +234,7 @@ def check_rules_violation(text):
 
     prompt = """Does the following message violate these rules? (Write only YES/NO):
 Rules:
-1. External links other than official Solium links (e.g., https://soliumcoin.com, t.me/soliumcoinchat) are prohibited.
+1. External links other than official Solium links (e.g., https://soliumcoin.com, t.me/https://t.me/+KDhk3UEwZAg3MmU0) are prohibited.
 2. Promoting cryptocurrencies or projects other than Solium is prohibited (e.g., 'Buy Bitcoin', 'Ethereum is great').
 3. Profanity, insults, or inappropriate language are prohibited (e.g., 'stupid', 'damn', 'fuck').
 4. Empty messages, system notifications, group join events, or casual greetings (e.g., 'nasılsın', 'merhaba') are NOT violations.
@@ -366,7 +366,7 @@ Got questions? Ask away! 😎"""
                     {"text": "What is Solium? ❓", "callback_data": "what_is_solium"},
                     {"text": "Ask Me Anything 💡", "callback_data": "ask_question"}
                 ],
-                [{"text": "Join Community 💬", "url": "https://t.me/soliumcoinchat"}]
+                [{"text": "Join Community 💬", "url": "https://t.me/https://t.me/+KDhk3UEwZAg3MmU0"}]
             ]
         }
         send_message(
@@ -398,7 +398,7 @@ Got questions? Ask away! 😎"""
     if text.lower() == "/rules":
         rules = """**Group Rules**:
 1. No profanity, insults, or inappropriate language.
-2. Only official Solium links (e.g., t.me/soliumcoinchat) are allowed.
+2. Only official Solium links (e.g., t.me/https://t.me/+KDhk3UEwZAg3MmU0) are allowed.
 3. Promoting other cryptocurrencies or projects is prohibited."""
         send_message(chat_id, rules, reply_to_message_id=message_id)
         return
@@ -406,9 +406,9 @@ Got questions? Ask away! 😎"""
     if text.lower() == "/airdrop":
         airdrop_info = """**Solium Airdrop**:
 - Total: 10,000,000 SLM (10% of supply).
-- Join: t.me/soliumcoinchat, share your BSC address.
+- Join: t.me/https://t.me/+KDhk3UEwZAg3MmU0, share your BSC address.
 - Distribution: 1M SLM every 7 days!
-More info: Ask me or join @soliumcoinchat! 😄"""
+More info: Ask me or join @https://t.me/+KDhk3UEwZAg3MmU0! 😄"""
         send_message(chat_id, airdrop_info, reply_to_message_id=message_id)
         return
 
