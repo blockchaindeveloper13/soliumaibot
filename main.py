@@ -406,7 +406,7 @@ Got questions? Ask away! 😎"""
     if text.lower() == "/airdrop":
         airdrop_info = """**Solium Airdrop**:
 - Total: 10,000,000 SLM (10% of supply).
-- Join: https://t.me/+KDhk3UEwZAg3MmU0, share your BSC address.
+- Join: https://t.me/+KDhk3UEwZAg3MmU0, .
 - Distribution: 1M SLM every 7 days!
 More info: Ask me or join https://t.me/+KDhk3UEwZAg3MmU0! 😄"""
         send_message(chat_id, airdrop_info, reply_to_message_id=message_id)
