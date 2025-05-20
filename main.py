@@ -377,23 +377,26 @@ Got questions? Ask away! 😎"""
         )
         return
 
-    if text.lower() == "/askmeanything":
-        reply_markup = {
-            "inline_keyboard": [
-                [
-                    {"text": "Ask a Question 💡", "callback_data": "ask_question"},
-                    {"text": "Fun Fact ❓", "callback_data": "fun_fact"}
-                ],
-                [{"text": "Try Something Fun 🎲", "callback_data": "try_fun"}]
+   if text.lower() == "/askmeanything":
+    reply_markup = {
+        "inline_keyboard": [
+            [
+                {"text": "Ask a Question 💡", "callback_data": "ask_question"},
+                {"text": "Fun Fact ❓", "callback_data": "fun_fact"}
+            ],
+            [
+                {"text": "Try Something Fun 🎲", "callback_data": "try_fun"},
+                {"text": "Take a Challenge 🎯", "callback_data": "take_challenge"}
             ]
-        }
-        send_message(
-            chat_id,
-            "Yes! 🎉 You're in *Ask Me Anything* mode! Serious, funny, or totally random—I'm ready for any question! 😄 Throw me a prompt, let's go! \n(Ex: 'How does AI work?', 'Tell me a joke!', or 'What should I do this weekend?')",
-            reply_to_message_id=message_id,
-            reply_markup=reply_markup
-        )
-        return
+        ]
+    }
+    send_message(
+        chat_id,
+        "Yes! 🎉 You're in *Ask Me Anything* mode! Serious, funny, or totally random—I'm ready for any question! 😄 Throw me a prompt, let's go! \n(Ex: 'How does AI work?', 'Tell me a joke!', or 'What should I do this weekend?')",
+        reply_to_message_id=message_id,
+        reply_markup=reply_markup
+    )
+    return
 
     if text.lower() == "/rules":
         rules = """**Group Rules**:
