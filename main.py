@@ -73,9 +73,9 @@ def ask_chatgpt(message):
 1. When user sends '/start', ALWAYS show this:
    'Merhaba! 🤖 Ben Solium Support AI, aklındaki *her şeyi* konuşmaya hazır bir yapay zekâ asistanıyım! 🚀 Solium (SLM) veya başka bir konuda, ne istersen sor! 😄'
    Inline buttons:
-   - Text: 'Solium Nedir? ❓', callback_data: 'what_is_solium'
-   - Text: 'Bana Her Şeyi Sor 💡', callback_data: 'ask_question'
-   - Text: 'Topluluğa Katıl 💬', url: 'https://t.me/soliumcoinchat'
+   - Text: 'What is Solium?❓', callback_data: 'what_is_solium'
+   - Text: 'Ask Me Anything  💡', callback_data: 'ask_question'
+   - Text: 'Join Community 💬', url: 'https://t.me/soliumcoinchat'
    - Commands:
    - /askmeanything
 
@@ -89,9 +89,9 @@ def ask_chatgpt(message):
    'Evet! 🎉 *Her Şeyi Sor* modundasın! Ciddi, komik, rastgele, ne istersen sor, hemen cevaplayayım! 😄 Bana bir prompt at, başlıyoruz! 
    (Ör: “Yapay zekâ nasıl çalışır?”, “Bana bi’ espri yap!” veya “Hafta sonu ne yapsam?”)'
    Inline buttons:
-   - Text: 'Bir Soru Sor 💡', callback_data: 'ask_question'
-   - Text: 'İlginç Bilgi ❓', callback_data: 'fun_fact'
-   - Text: 'Eğlenceli Bir Şey Dene 🎲', callback_data: 'try_fun'
+   - Text: ' Ask a Question💡', callback_data: 'ask_question'
+   - Text: 'Fun Fact ❓', callback_data: 'fun_fact'
+   - Text: 'Try Something Fun 🎲', callback_data: 'try_fun'
 
 6. When user asks about Solium (e.g., 'What is Solium?'):
    Include this note:
