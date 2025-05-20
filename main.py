@@ -437,6 +437,9 @@ def webhook(token):
         return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "ok"}), 200
     
+  @app.route('/webhook', methods=['POST'])
+def webhook():
+    """Telegram webhook endpoint'i."""
     update = request.get_json()
     logger.info("Webhook geldi: %s", update)
     try:
@@ -445,7 +448,6 @@ def webhook(token):
         logger.error(f"Webhook işleme hatası: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "ok"}), 200
-
 @app.route('/')
 def home():
     """Ana sayfa."""
