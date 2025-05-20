@@ -45,8 +45,8 @@ WHITELIST_LINKS = [
     "soliumcoin.com",
     "@soliumcoinowner",
     "@soliumcoin",
-    "@https://t.me/+KDhk3UEwZAg3MmU0",
-    "t.me/https://t.me/+KDhk3UEwZAg3MmU0",
+    "https://t.me/+KDhk3UEwZAg3MmU0",
+    "https://t.me/+KDhk3UEwZAg3MmU0",
     "t.me/soliumcoin",
     "https://x.com/soliumcoin",
     "https://github.com/soliumcoin/solium-project",
@@ -366,7 +366,7 @@ Got questions? Ask away! 😎"""
                     {"text": "What is Solium? ❓", "callback_data": "what_is_solium"},
                     {"text": "Ask Me Anything 💡", "callback_data": "ask_question"}
                 ],
-                [{"text": "Join Community 💬", "url": "https://t.me/https://t.me/+KDhk3UEwZAg3MmU0"}]
+                [{"text": "Join Community 💬", "url": "https://t.me/+KDhk3UEwZAg3MmU0"}]
             ]
         }
         send_message(
@@ -406,9 +406,9 @@ Got questions? Ask away! 😎"""
     if text.lower() == "/airdrop":
         airdrop_info = """**Solium Airdrop**:
 - Total: 10,000,000 SLM (10% of supply).
-- Join: t.me/https://t.me/+KDhk3UEwZAg3MmU0, share your BSC address.
+- Join: https://t.me/+KDhk3UEwZAg3MmU0, share your BSC address.
 - Distribution: 1M SLM every 7 days!
-More info: Ask me or join @https://t.me/+KDhk3UEwZAg3MmU0! 😄"""
+More info: Ask me or join https://t.me/+KDhk3UEwZAg3MmU0! 😄"""
         send_message(chat_id, airdrop_info, reply_to_message_id=message_id)
         return
 
