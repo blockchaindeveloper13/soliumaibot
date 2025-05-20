@@ -398,15 +398,15 @@ Got questions? Ask away! 😎"""
     if text.lower() == "/rules":
         rules = """**Group Rules**:
 1. No profanity, insults, or inappropriate language.
-2. Only official Solium links (e.g., t.me/https://t.me/+KDhk3UEwZAg3MmU0) are allowed.
+2. Only official Solium links (e.g., https://t.me/+KDhk3UEwZAg3MmU0) are allowed.
 3. Promoting other cryptocurrencies or projects is prohibited."""
         send_message(chat_id, rules, reply_to_message_id=message_id)
         return
 
     if text.lower() == "/rewards":
-        airdrop_info = """**Solium Community REWARDS**:
+        airdrop_info = """**Solium Community Rewards**:
 - Total: 10,000,000 SLM (10% of supply).
-- Join: https://t.me/+KDhk3UEwZAg3MmU0, .
+- Join: https://t.me/+KDhk3UEwZAg3MmU0 
 - Distribution: 1M SLM every 7 days!
 More info: Ask me or join https://t.me/+KDhk3UEwZAg3MmU0! 😄"""
         send_message(chat_id, airdrop_info, reply_to_message_id=message_id)
@@ -441,7 +441,7 @@ if BackgroundScheduler and TTLCache:
     def send_airdrop_reminder():
         if "airdrop_reminder" not in message_cache:
             context = get_context()
-            message = ask_chatgpt(f"Remind the Solium Community REWARDS in a witty way, encourage joining. Context: {context}")
+            message = ask_chatgpt(f"Remind the Solium Community Rewards in a witty way, encourage joining. Context: {context}")
             message_cache["airdrop_reminder"] = message
         send_message(CHANNEL_ID, message_cache["airdrop_reminder"])
         logger.info("Airdrop reminder sent: %s", message_cache["airdrop_reminder"])
