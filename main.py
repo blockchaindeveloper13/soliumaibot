@@ -423,13 +423,20 @@ if BackgroundScheduler and TTLCache:
     scheduler.add_job(send_trend_motivation, 'cron', hour=20, minute=0)
     scheduler.start()
 
-@app.route('/webhook', methods=['POST'])
+@app.route('/webhook/<token>', methods=['POST'])
 def webhook(token):
-    """Telegram webhook endpoint'i."""
     if token != TELEGRAM_BOT_TOKEN:
         logger.warning("Geçersiz token: %s", token)
         return jsonify({"status": "error", "message": "Token uyuşmazlığı"}), 403
-
+    update = request.get_json()
+    logger.info("Webhook geldi: %s", update)
+    try:
+        process_message(update)
+    except Exception as e:
+        logger.error(f"Webhook işleme hatası: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    return jsonify({"status": "ok"}), 200
+    
     update = request.get_json()
     logger.info("Webhook geldi: %s", update)
     try:
