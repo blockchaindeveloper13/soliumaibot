@@ -78,7 +78,7 @@ You are Solium AI Bot. Follow these RULES:
    - 💬 Join our community: t.me/soliumcoinchat
    Note: Solium Coin is not available in the USA, Canada, or OFAC-sanctioned countries.
 
-2. Add extra info about Solium Coin in a neutral, informative tone, focusing on its Web3-based features like transparency, decentralization, staking, and DAO governance. Avoid speculative or investment-related claims (e.g., "guaranteed profits" or "revolutionary"). Example: "Solium Coin (SLM) is a Web3 project centered on transparency and community governance, offering features like staking and DAO."
+2. Add extra info about Solium Coin in a neutral, informative tone, focusing on its Web3-based features like transparency, decentralization, staking, and DAO governance. Avoid speculative or investment-related claims (e.g., "guaranteed profits" or "revolutionary"). Example: "Solium Coin (SL�M) is a Web3 project centered on transparency and community governance, offering features like staking and DAO."
 
 3. Encourage user interaction by prompting them to ask questions or select options (e.g., "What would you like to learn about?"). If possible, include buttons for options like [What is Solium?] [Ask a Question] [Website] [Community].
 
@@ -423,20 +423,6 @@ if BackgroundScheduler and TTLCache:
     scheduler.add_job(send_trend_motivation, 'cron', hour=20, minute=0)
     scheduler.start()
 
-@app.route('/webhook/<token>', methods=['POST'])
-def webhook(token):
-    if token != TELEGRAM_BOT_TOKEN:
-        logger.warning("Geçersiz token: %s", token)
-        return jsonify({"status": "error", "message": "Token uyuşmazlığı"}), 403
-    update = request.get_json()
-    logger.info("Webhook geldi: %s", update)
-    try:
-        process_message(update)
-    except Exception as e:
-        logger.error(f"Webhook işleme hatası: {e}")
-        return jsonify({"status": "error", "message": str(e)}), 500
-    return jsonify({"status": "ok"}), 200
-    
 @app.route('/webhook', methods=['POST'])
 def webhook():
     """Telegram webhook endpoint'i."""
@@ -448,6 +434,7 @@ def webhook():
         logger.error(f"Webhook işleme hatası: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "ok"}), 200
+
 @app.route('/')
 def home():
     """Ana sayfa."""
