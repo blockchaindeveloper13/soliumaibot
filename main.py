@@ -286,7 +286,7 @@ def process_callback_query(update):
     if callback_data == "ask_question":
         send_message(
             chat_id,
-            "Harika! 😄 Ne merak ediyorsun? Sorunu yaz, hemen konuşalım!",
+            "Awesome! 😄 What's on your mind? Type your question, and let's dive in!",
             reply_to_message_id=message_id
         )
         # Bot, sonraki mesajı bekler ve ask_chatgpt ile işler
@@ -296,7 +296,7 @@ def process_callback_query(update):
         }
         send_message(
             chat_id,
-            "Solium (SLM), şeffaflık ve topluluk yönetimine odaklanan bir Web3 projesidir. Staking ve DAO gibi özellikler sunar. 😊 (Solium, bazı bölgelerde kullanılamaz: ABD, Kanada, OFAC yaptırım listesindeki ülkeler.) Başka ne merak ediyorsun?",
+            Solium (SLM) is a Web3 project focused on transparency and community governance, offering features like staking and DAO. 😊 (Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.) What else are you curious about?"",
             reply_to_message_id=message_id,
             reply_markup=reply_markup
         )
@@ -309,14 +309,14 @@ def process_callback_query(update):
         }
         send_message(
             chat_id,
-            "İşte sana ilginç bir bilgi! 😎 Biliyor musun, ahtapotların üç kalbi var! 🐙 Başka ne öğrenmek istersin?",
+            "Here's a fun fact! 😎 Did you know octopuses have three hearts? 🐙 Want another?",
             reply_to_message_id=message_id,
             reply_markup=reply_markup
         )
     elif callback_data == "try_fun":
         send_message(
             chat_id,
-            "Hadi eğlenelim! 😺 Bir emoji at, sevdiğin bi’ şeyi söyle ya da rastgele bi’ fikir ver, sana özel bi’ şeyler uydurayım!",
+            "Let's have some fun! 😺 Send an emoji, tell me something you love, or share a random idea, and I'll whip up something special!",
             reply_to_message_id=message_id
         )
         # Bot, sonraki mesajı bekler ve ask_chatgpt ile işler
@@ -362,10 +362,10 @@ Got questions? Ask away! 😎"""
         reply_markup = {
             "inline_keyboard": [
                 [
-                    {"text": "Solium Nedir? ❓", "callback_data": "what_is_solium"},
-                    {"text": "Bana Her Şeyi Sor 💡", "callback_data": "ask_question"}
+                    {"text": "What is solium? ❓", "callback_data": "what_is_solium"},
+                    {"text": "Ask Me Anything 💡", "callback_data": "ask_question"}
                 ],
-                [{"text": "Topluluğa Katıl 💬", "url": "https://t.me/soliumcoinchat"}]
+                [{"text": "Join The Community 💬", "url": "https://t.me/soliumcoinchat"}]
             ]
         }
         send_message(
@@ -388,7 +388,7 @@ Got questions? Ask away! 😎"""
         }
         send_message(
             chat_id,
-            "Evet! 🎉 *Her Şeyi Sor* modundasın! Ciddi, komik, rastgele, ne istersen sor, hemen cevaplayayım! 😄 Bana bir prompt at, başlıyoruz! \n(Ör: “Yapay zekâ nasıl çalışır?”, “Bana bi’ espri yap!” veya “Hafta sonu ne yapsam?”)",
+            "Yes! 🎉 You're in *Ask Me Anything* mode! Serious, funny, or totally random—I'm ready for any question! 😄 Throw me a prompt, let's get started! \n(For Example: “How does AI work?", "Tell me a joke!", or "What should I do this weekend?”)",
             reply_to_message_id=message_id,
             reply_markup=reply_markup
         )
