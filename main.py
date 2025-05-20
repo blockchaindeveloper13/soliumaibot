@@ -437,7 +437,7 @@ def webhook(token):
         return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "ok"}), 200
     
-  @app.route('/webhook', methods=['POST'])
+@app.route('/webhook', methods=['POST'])
 def webhook():
     """Telegram webhook endpoint'i."""
     update = request.get_json()
