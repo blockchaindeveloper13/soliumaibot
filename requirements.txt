@@ -5,3 +5,5 @@ python-telegram-bot
 apscheduler
 cachetools
 openai==1.0.0
+gevent==22.10.2
+python-dotenv==1.0.0
