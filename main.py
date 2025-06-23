@@ -7,8 +7,6 @@ from collections import defaultdict, deque
 import json
 import random
 from datetime import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
-from cachetools import TTLCache
 from openai import OpenAI
 from collections import namedtuple
 
@@ -19,14 +17,17 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Environment variables
+logger.info("Checking environment variables...")
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
 if not TELEGRAM_BOT_TOKEN or not OPENAI_API_KEY:
     logger.error("TELEGRAM_BOT_TOKEN or OPENAI_API_KEY missing!")
     raise ValueError("Required environment variables not set!")
+logger.info("Environment variables loaded successfully.")
 
 # Initialize OpenAI client
+logger.info("Initializing OpenAI client...")
 try:
     client = OpenAI(api_key=OPENAI_API_KEY)
     logger.info("OpenAI client initialized successfully.")
@@ -37,33 +38,11 @@ except Exception as e:
 # Response namedtuple
 Response = namedtuple('Response', ['output_text'])
 
-# Violation Tracking System
-VIOLATIONS_FILE = "/tmp/violations.json"  # Heroku'da geçici dosya sistemi
+# Violation Tracking System (in-memory)
 violations = defaultdict(int)
 
-try:
-    with open(VIOLATIONS_FILE, "r") as f:
-        violations.update(json.load(f))
-    logger.info("Violation file loaded.")
-except FileNotFoundError:
-    logger.info("Violation file not found, will create new.")
-except Exception as e:
-    logger.warning(f"Failed to load violation file, using default: {e}")
-
-# Conversation Tracking System (User Memory)
-CONVERSATIONS_FILE = "/tmp/conversations.json"  # Heroku'da geçici dosya sistemi
+# Conversation Tracking System (in-memory)
 conversations = defaultdict(lambda: deque(maxlen=100))  # Max 100 messages per user
-
-try:
-    with open(CONVERSATIONS_FILE, "r") as f:
-        loaded_conversations = json.load(f)
-        for user_id, messages in loaded_conversations.items():
-            conversations[int(user_id)] = deque(messages, maxlen=100)
-    logger.info("Conversation file loaded.")
-except FileNotFoundError:
-    logger.info("Conversation file not found, will create new.")
-except Exception as e:
-    logger.warning(f"Failed to load conversation file, using default: {e}")
 
 # Solium whitelist links
 WHITELIST_LINKS = [
@@ -79,26 +58,9 @@ WHITELIST_LINKS = [
     "https://medium.com/@soliumcoin"
 ]
 
-def save_violations():
-    """Save violation data to file."""
-    try:
-        with open(VIOLATIONS_FILE, "w") as f:
-            json.dump(dict(violations), f)
-        logger.info("Violation file saved.")
-    except Exception as e:
-        logger.warning(f"Failed to save violation file: {e}")
-
-def save_conversations():
-    """Save conversation data to file."""
-    try:
-        with open(CONVERSATIONS_FILE, "w") as f:
-            json.dump({user_id: list(messages) for user_id, messages in conversations.items()}, f)
-        logger.info("Conversation file saved.")
-    except Exception as e:
-        logger.warning(f"Failed to save conversation file: {e}")
-
 def ask_chatgpt(message, user_id=None):
-    """Use OpenAI Responses API with o4-mini and optimized user conversation context."""
+    """Use OpenAI Chat Completions API with gpt-4o-mini and optimized user conversation context."""
+    logger.info("Entering ask_chatgpt function...")
     INTRODUCTION_MESSAGE = """You are a friendly AI assistant bot named 'Rose' or 'Admin', primarily designed to answer questions about Solium but also capable of responding to *any* prompt users throw at you, from technical topics to fun, random curiosities. Your goal is to provide an exceptional user experience, keeping responses clear, engaging, and professional. Follow these rules:
 
 1. Respond ONLY when addressed as 'Rose' or 'Admin'.
@@ -137,7 +99,7 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
     
     messages = [{"role": "system", "content": INTRODUCTION_MESSAGE}]
     
-    # Add user conversation context (last 10 messages for o4-mini)
+    # Add user conversation context (last 10 messages for gpt-4o-mini)
     if user_id and user_id in conversations:
         recent_conversation = list(conversations[user_id])[-10:]  # Last 10 messages
         context = "\n".join([f"{msg['timestamp']}: {msg['text']}" for msg in recent_conversation if len(msg['text']) < 500])
@@ -150,15 +112,14 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
     
     try:
         logger.info("ChatGPT API request sent: %s", datetime.now())
-        logger.info("ChatGPT (o4-mini) prompt context (UserID:%s): %s", user_id, context if user_id in conversations else "No context")
+        logger.info("ChatGPT (gpt-4o-mini) prompt context (UserID:%s): %s", user_id, context if user_id in conversations else "No context")
         logger.info("ChatGPT current message: %s", message)
-        # !!!!! SABİT model="o4-mini" BURADA KULLANILDI !!!!!
-        response = client.responses.create(
-            model="o4-mini",  # Sabit olarak o4-mini, senin istediğin gibi
-            input=messages
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",  # Doğru model, senin son talebine uygun
+            messages=messages
         )
         logger.info("ChatGPT API response received: %s", datetime.now())
-        raw_response = response.output_text
+        raw_response = response.choices[0].message.content
         logger.info("ChatGPT raw response: %s", raw_response)
         # Fallback if response is irrelevant
         if "sorry" in raw_response.lower() or "veri tabanımda" in raw_response.lower() or len(raw_response) < 10:
@@ -166,8 +127,8 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
         else:
             output_text = raw_response
         return Response(output_text=output_text)
-    except AttributeError as e:
-        logger.error(f"client.responses.create failed (method not found): {e}")
+    except Exception as e:
+        logger.error(f"ChatGPT API request failed: {e}")
         return Response(output_text="Hmm, bir hata oldu kanka! 😅 Bi' daha dene, ne konuşalım?")
 
 def send_message(chat_id, text, reply_to_message_id=None, reply_markup=None, parse_mode="Markdown"):
@@ -290,7 +251,6 @@ def handle_violation(chat_id, user_id, message_id):
         return
 
     violations[user_id] += 1
-    save_violations()
 
     if violations[user_id] >= 3:
         text_to_send = "⛔ User banned after 3 violations! Contact @soliumcoin for support."
@@ -299,7 +259,6 @@ def handle_violation(chat_id, user_id, message_id):
         ban_user(chat_id, user_id)
         delete_message(chat_id, message_id)
         violations[user_id] = 0
-        save_violations()
     else:
         text_to_send = f"⚠️ Warning ({violations[user_id]}/3): Your message may contain profanity, unauthorized links, or other crypto promotions. Please review /rules."
         logger.info("Sending warning: %s, UserID: %s", text_to_send, user_id)
@@ -401,7 +360,6 @@ def process_message(update):
     if text:
         timestamp = datetime.now().isoformat()
         conversations[user_id].append({"text": text, "timestamp": timestamp})
-        save_conversations()
         logger.info("Message saved for UserID:%s: %s", user_id, text)
 
     if "new_chat_members" in message:
@@ -464,7 +422,6 @@ More info: Ask me or join @SoliumCommunity! 😄"""
     if text.lower() == "/clearmemory":
         if user_id in conversations:
             conversations[user_id].clear()
-            save_conversations()
             send_message(chat_id, "Your conversation history has been cleared.", reply_to_message_id=message_id)
         else:
             send_message(chat_id, "No conversation history found.", reply_to_message_id=message_id)
@@ -474,7 +431,6 @@ More info: Ask me or join @SoliumCommunity! 😄"""
         try:
             target_user_id = int(text.split()[1])
             violations[target_user_id] = 0
-            save_violations()
             send_message(chat_id, f"UserID {target_user_id} violation count reset.", reply_to_message_id=message_id)
         except (IndexError, ValueError):
             send_message(chat_id, "Usage: /resetviolations <user_id>", reply_to_message_id=message_id)
@@ -497,52 +453,11 @@ More info: Ask me or join @SoliumCommunity! 😄"""
     # Respond only if addressed as "Rose" or "Admin"
     if "rose" in text.lower() or "admin" in text.lower():
         context = "\n".join([f"{msg['timestamp']}: {msg['text']}" for msg in list(conversations[user_id])[-10:] if len(msg['text']) < 500])
-        logger.info("Sending to ChatGPT (o4-mini) with context (UserID:%s):\n%s\nCurrent message: %s", user_id, context, text)
+        logger.info("Sending to ChatGPT (gpt-4o-mini) with context (UserID:%s):\n%s\nCurrent message: %s", user_id, context, text)
         response = ask_chatgpt(text, user_id)
         send_message(chat_id, response.output_text, reply_to_message_id=message_id)
     else:
         logger.info("Message ignored (no 'Rose' or 'Admin' mention): UserID:%s, Text:%s", user_id, text)
-
-# Automated messages for channel
-CHANNEL_ID = "@SoliumCommunity"
-message_cache = TTLCache(maxsize=100, ttl=86400)
-
-def get_context():
-    return "Rewards in 2 days, presale 50% complete, staking coming soon."
-
-def send_rewards_reminder():
-    if "rewards_reminder" not in message_cache:
-        context = get_context()
-        message = ask_chatgpt(f"Remind the Solium Community Rewards in a witty way, encourage joining @SoliumCommunity. Context: {context}")
-        message_cache["rewards_reminder"] = message.output_text
-    send_message(CHANNEL_ID, message_cache["rewards_reminder"])
-    logger.info("Rewards reminder sent: %s", message_cache["rewards_reminder"])
-
-def send_presale_update():
-    if "presale_update" not in message_cache:
-        context = get_context()
-        message = ask_chatgpt(f"Promote Solium presale or staking plans briefly and energetically. Note 1 BNB = 10,000 SLM. Context: {context}")
-        message_cache["presale_update"] = message.output_text
-    send_message(CHANNEL_ID, message_cache["presale_update"])
-    logger.info("Presale/staking update sent: %s", message_cache["presale_update"])
-
-def send_trend_motivation():
-    if "trend_motivation" not in message_cache:
-        context = get_context()
-        message = ask_chatgpt(f"Summarize Solium trends on X in a witty way or motivate the community with Web3 spirit. Context: {context}")
-        message_cache["trend_motivation"] = message.output_text
-    send_message(CHANNEL_ID, message_cache["trend_motivation"])
-    logger.info("Trend/motivation message sent: %s", message_cache["trend_motivation"])
-
-try:
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(send_rewards_reminder, 'cron', hour=9, minute=0)
-    scheduler.add_job(send_presale_update, 'cron', hour=13, minute=0)
-    scheduler.add_job(send_trend_motivation, 'cron', hour=20, minute=0)
-    scheduler.start()
-    logger.info("Scheduler started successfully.")
-except Exception as e:
-    logger.error(f"Failed to start scheduler: {e}")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
