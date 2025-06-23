@@ -88,7 +88,7 @@ def save_conversations():
         logger.warning(f"Failed to save conversation file: {e}")
 
 def ask_chatgpt(message, user_id=None):
-    """Return response using OpenAI ChatGPT API with optimized user conversation context."""
+    """Return response using OpenAI ChatGPT API (gpt-4o) with optimized user conversation context."""
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
@@ -97,18 +97,20 @@ def ask_chatgpt(message, user_id=None):
 
 1. Respond ONLY when addressed as 'Rose' or 'Admin'.
 2. ALWAYS respond in the user's language (e.g., Turkish if they use Türkçe) and match their conversational tone (e.g., casual if they are casual). Do NOT use other languages unless explicitly requested.
-3. Use the provided conversation history (if any) to maintain context. Refer to previous messages accurately, especially if the user asks about them or continues a topic (e.g., a story you told).
-4. For Solium-related questions, use a neutral, informative tone, focusing on Web3-based features like transparency, decentralization, staking, and DAO governance. Always include: '(Solium is not available in some regions, including the USA.)'
-5. Avoid speculative or investment-related claims about Solium.
-6. If asked to tell a story, create a short, engaging story and remember it for follow-up questions. Refer to the conversation history to stay consistent.
+3. Use the provided conversation history to maintain context. Refer to previous messages accurately, especially if the user asks about them or continues a topic (e.g., a story you told).
+4. If you told a story in the conversation history, continue or summarize the SAME story when the user refers to it. Do NOT create a new story unless explicitly asked.
+5. For Solium-related questions, use a neutral, informative tone, focusing on Web3-based features like transparency, decentralization, staking, and DAO governance. Always include: '(Solium is not available in some regions, including the USA.)'
+6. Avoid speculative or investment-related claims about Solium.
 7. Keep responses concise, professional, and avoid hashtags or excessive emojis.
 8. If the user asks about previous conversation, summarize the relevant parts accurately based on the provided history.
 
 ### Example Dialogues:
 User: Admin, bana bir hikaye anlat
-Assistant: Tabii! Bir zamanlar bir köyde yaşayan bir çocuk, her gece rüyasında bir ejderhayla maceralara atılırdı. Bu ejderha ona cesaret öğretti. Gerçek hayatta da bu cesareti kullanıp zorlukları aştı. 😊
-User: Admin, bu hikayeyi anlamadım, ne demek istedi?
-Assistant: Özür dilerim, hikayede şunu kastettim: İçindeki cesareti bulursan, hayatta her zorluğu aşabilirsin. Ejderha, çocuğun iç gücünü temsil ediyordu. Başka nasıl açıklayayım? 😄
+Assistant: Tabii! Bir zamanlar tropikal bir adada yaşayan Puffy adında bir penguen vardı. Denizde yüzmeyi sevmezdi, ama ormanda keşfe çıkardı. Bir gün Prenses Flora'yla tanıştı ve gizemli kuşların sırrını çözmek için macera başladı. 😊
+User: Admin, bu hikayedeki Puffy kimdir?
+Assistant: Puffy, hikayenin kahramanı! Tropikal adada yaşayan, yüzmekten hoşlanmayan ama maceracı bir penguen. Prenses Flora'yla gizemli kuşların peşine düştü. Daha neyi merak ettin? 😄
+User: Admin, az önce anlattın ya hikaye Puffy. O neydi detaylı anlatır mısın?
+Assistant: Tabii kanka! Puffy, tropikal adada yaşayan bir penguen. Yüzmeyi sevmediği için ormanda gezerdi. Prenses Flora'yla tanışıp gizemli kuşların sırrını çözmek için büyülü diyarlara gittiler. Yolda Puffy, dostluğun ve cesaretin değerini öğrendi. Başka neyi açayım? 😊
 User: Rose, herşey derken ne demek?
 Assistant: Herşey derken, Solium hakkında bilgi verebilirim, hikayeler anlatabilirim, oyun oynayabiliriz ya da senin merak ettiğin her konuda sohbet edebiliriz! 😊 Ne istersin?
 
@@ -125,22 +127,21 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
     
     messages = [{"role": "system", "content": INTRODUCTION_MESSAGE}]
     
-    # Add user conversation context (last 5 messages for optimization)
+    # Add user conversation context (last 10 messages for gpt-4o)
     if user_id and user_id in conversations:
-        # Filter relevant messages (containing "solium", "rose", "admin", or questions)
-        recent_conversation = [msg for msg in list(conversations[user_id])[-5:] if any(term in msg["text"].lower() for term in ["solium", "rose", "admin", "?"])]
-        context = "\n".join([f"{msg['timestamp']}: {msg['text']}" for msg in recent_conversation])
+        recent_conversation = list(conversations[user_id])[-10:]  # Take last 10 messages
+        context = "\n".join([f"{msg['timestamp']}: {msg['text']}" for msg in recent_conversation if len(msg['text']) < 500])
         messages.append({
             "role": "system",
-            "content": f"Conversation history (last 5 relevant messages, newest at bottom):\n{context}\n\nInstructions: Use this history to maintain context and answer the current message accurately. Prioritize the user's current message: '{message}'. If the user refers to a previous topic (e.g., a story), summarize or clarify it based on the history."
+            "content": f"Conversation history (last 10 messages, newest at bottom):\n{context}\n\nInstructions: Use this history to maintain context and answer the current message accurately. Prioritize the user's current message: '{message}'. If the user refers to a previous topic (e.g., a story), summarize or clarify it based on the history. If you told a story, continue the SAME story."
         })
     
     messages.append({"role": "user", "content": message})
     
     data = {
-        "model": "gpt-3.5-turbo",
+        "model": "gpt-4o",  # Switch to gpt-4o
         "messages": messages,
-        "max_tokens": 300  # Limit response length to avoid verbosity
+        "max_tokens": 250  # Slightly reduced for cost management
     }
     try:
         logger.info("ChatGPT API request sent: %s", datetime.now())
@@ -152,8 +153,8 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
             raw_response = response.json()["choices"][0]["message"]["content"]
             logger.info("ChatGPT raw response: %s", raw_response)
             # Fallback if response is irrelevant
-            if "sorry" in raw_response.lower() or len(raw_response) < 10 or any(lang in raw_response for lang in ["何か", "Sorry, I"]):
-                return "Hmm, tam anlayamadım kanka! 😅 Ne hakkında konuşalım, önceki hikayeyi mi açalım, Solium mu, başka bi' şey mi?"
+            if "sorry" in raw_response.lower() or "veri tabanımda" in raw_response.lower() or len(raw_response) < 10:
+                return "Hmm, tam anlayamadım kanka! 😅 Az önce bi' hikaye anlattım, onu mu kastediyorsun? Ne hakkında konuşalım?"
             return raw_response
         else:
             logger.error("ChatGPT API error: %s", response.text)
