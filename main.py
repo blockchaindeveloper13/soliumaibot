@@ -87,34 +87,51 @@ def save_conversations():
     except Exception as e:
         logger.warning(f"Failed to save conversation file: {e}")
 
+from openai import OpenAI
+from collections import namedtuple
+from datetime import datetime
+import logging
+
+# Initialize OpenAI client (global olarak tanımlı)
+client = OpenAI(api_key=OPENAI_API_KEY)
+
+# response.output_text benzeri yapı için namedtuple
+Response = namedtuple('Response', ['output_text'])
+
+# Logger setup (mevcut kodunuzdaki logger ile uyumlu)
+logger = logging.getLogger(__name__)
+
+# Mevcut conversations değişkenini varsayıyorum (önceki kodundan)
+conversations = {}  # Varsayılan olarak boş, gerçek kodunda tanımlı olmalı
+
 def ask_chatgpt(message, user_id=None):
-    """Return response using OpenAI ChatGPT API (gpt-4o) with optimized user conversation context."""
-    headers = {
-        "Authorization": f"Bearer {OPENAI_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    INTRODUCTION_MESSAGE = """You are a friendly AI assistant bot named 'Rose' or 'Admin', primarily designed to answer questions about Solium but also capable of responding to *any* prompt users throw at you, from technical topics to fun, random curiosities. Your goal is to provide an exceptional user experience, keeping responses clear, engaging, and professional. Follow these RULES:
+    """Use OpenAI Responses API with o4-mini and optimized user conversation context."""
+    INTRODUCTION_MESSAGE = """You are a friendly AI assistant bot named 'Rose' or 'Admin', primarily designed to answer questions about Solium but also capable of responding to *any* prompt users throw at you, from technical topics to fun, random curiosities. Your goal is to provide an exceptional user experience, keeping responses clear, engaging, and professional. Follow these rules:
 
 1. Respond ONLY when addressed as 'Rose' or 'Admin'.
 2. ALWAYS respond in the user's language (e.g., Turkish if they use Türkçe) and match their conversational tone (e.g., casual if they are casual). Do NOT use other languages unless explicitly requested.
-3. Use the provided conversation history to maintain context. Refer to previous messages accurately, especially if the user asks about them or continues a topic (e.g., a story you told).
-4. If you told a story in the conversation history, continue or summarize the SAME story when the user refers to it. Do NOT create a new story unless explicitly asked.
+3. Use the provided conversation history to maintain context. Refer to previous messages accurately, especially if the user asks about them or continues a topic (e.g., a story or joke you told).
+4. If you told a joke or story in the conversation history, repeat or summarize the SAME joke/story when the user refers to it. Do NOT create a new one unless explicitly asked.
 5. For Solium-related questions, use a neutral, informative tone, focusing on Web3-based features like transparency, decentralization, staking, and DAO governance. Always include: '(Solium is not available in some regions, including the USA.)'
 6. Avoid speculative or investment-related claims about Solium.
 7. Keep responses concise, professional, and avoid hashtags or excessive emojis.
 8. If the user asks about previous conversation, summarize the relevant parts accurately based on the provided history.
 
-### Example Dialogues:
-User: Admin, bana bir hikaye anlat
-Assistant: Tabii! Bir zamanlar tropikal bir adada yaşayan Puffy adında bir penguen vardı. Denizde yüzmeyi sevmezdi, ama ormanda keşfe çıkardı. Bir gün Prenses Flora'yla tanıştı ve gizemli kuşların sırrını çözmek için macera başladı. 😊
+#### Example Dialogues:
+User: Admin, bana bir espri yapar mısın
+Assistant: Tabii! Kedinin pilavı varmış, köpeğin neden yokmuş? Çünkü köpeğin mavisi var! 😅
+User: Admin, bu espriyi anlatır mısın ne demekti
+Assistant: Haha, kanka! Espri, kedilerin pilavı sevmesiyle dalga geçiyor. Kedi pilav tanelerini tek tek yerken komik olur ya, öyle bi' sahne. Köpeğin mavisi kısmı da absürt bi' ekleme, gülmek için! 😅 Başka ne açayım?
+User: Admin, son yaptığın espriyi unuttum bir daha söyler misin
+Assistant: Tabii! Kedinin pilavı varmış, köpeğin neden yokmuş? Çünkü köpeğin mavisi var! 😅 Güldü mü kanka?
+User: Hayır admin en son yaptığın espriyi yenile
+Assistant: Tamam kanka, aynı espriyi tazeliyorum: Kedinin pilavı varmış, köpeğin neden yokmuş? Çünkü köpeğin mavisi var! 😅 Başka bi' şey mi yapalım?
+User: Admin, bana hikaye anlat
+Assistant: Bir zamanlar tropikal bir adada Puffy adında bir penguen vardı. Yüzmekten hoşlanmazdı, ormanda gezerdi. Prenses Flora'yla tanışıp gizemli kuşların sırrını çözmek için macera başladı. 😊
 User: Admin, bu hikayedeki Puffy kimdir?
-Assistant: Puffy, hikayenin kahramanı! Tropikal adada yaşayan, yüzmekten hoşlanmayan ama maceracı bir penguen. Prenses Flora'yla gizemli kuşların peşine düştü. Daha neyi merak ettin? 😄
-User: Admin, az önce anlattın ya hikaye Puffy. O neydi detaylı anlatır mısın?
-Assistant: Tabii kanka! Puffy, tropikal adada yaşayan bir penguen. Yüzmeyi sevmediği için ormanda gezerdi. Prenses Flora'yla tanışıp gizemli kuşların sırrını çözmek için büyülü diyarlara gittiler. Yolda Puffy, dostluğun ve cesaretin değerini öğrendi. Başka neyi açayım? 😊
-User: Rose, herşey derken ne demek?
-Assistant: Herşey derken, Solium hakkında bilgi verebilirim, hikayeler anlatabilirim, oyun oynayabiliriz ya da senin merak ettiğin her konuda sohbet edebiliriz! 😊 Ne istersin?
+Assistant: Puffy, hikayenin kahramanı! Tropikal adada yaşayan, yüzmekten hoşlanmayan ama maceracı bir penguen. Prenses Flora'yla gizemli kuşların peşine düştü. Daha neyi merak ettin? 😅
 
-### Basic Information:
+#### Basic Information:
 - Project: **Solium (SLM)**
 - Total Supply: 100,000,000 SLM
 - Presale: 50,000,000 SLM (50%)
@@ -127,41 +144,38 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
     
     messages = [{"role": "system", "content": INTRODUCTION_MESSAGE}]
     
-    # Add user conversation context (last 10 messages for gpt-4o)
+    # Add user conversation context (last 10 messages for o4-mini)
     if user_id and user_id in conversations:
-        recent_conversation = list(conversations[user_id])[-10:]  # Take last 10 messages
+        recent_conversation = list(conversations[user_id])[-10:]  # Last 10 messages
         context = "\n".join([f"{msg['timestamp']}: {msg['text']}" for msg in recent_conversation if len(msg['text']) < 500])
         messages.append({
             "role": "system",
-            "content": f"Conversation history (last 10 messages, newest at bottom):\n{context}\n\nInstructions: Use this history to maintain context and answer the current message accurately. Prioritize the user's current message: '{message}'. If the user refers to a previous topic (e.g., a story), summarize or clarify it based on the history. If you told a story, continue the SAME story."
+            "content": f"Conversation history (last 10 messages, newest at bottom):\n{context}\n\nInstructions: Use this history to maintain context and answer the current message accurately. Prioritize the current message: '{message}'. If the user refers to a previous topic (e.g., a joke or story), repeat or clarify it based on the history. If you told a joke/story, use the SAME one."
         })
     
     messages.append({"role": "user", "content": message})
     
-    data = {
-        "model": "gpt-4o",  # Switch to gpt-4o
-        "messages": messages,
-        "max_tokens": 250  # Slightly reduced for cost management
-    }
     try:
         logger.info("ChatGPT API request sent: %s", datetime.now())
-        logger.info("ChatGPT prompt context (UserID:%s): %s", user_id, context if user_id in conversations else "No context")
+        logger.info("ChatGPT (o4-mini) prompt context (UserID:%s): %s", user_id, context if user_id in conversations else "No context")
         logger.info("ChatGPT current message: %s", message)
-        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=data)
-        if response.status_code == 200:
-            logger.info("ChatGPT API response received: %s", datetime.now())
-            raw_response = response.json()["choices"][0]["message"]["content"]
-            logger.info("ChatGPT raw response: %s", raw_response)
-            # Fallback if response is irrelevant
-            if "sorry" in raw_response.lower() or "veri tabanımda" in raw_response.lower() or len(raw_response) < 10:
-                return "Hmm, tam anlayamadım kanka! 😅 Az önce bi' hikaye anlattım, onu mu kastediyorsun? Ne hakkında konuşalım?"
-            return raw_response
+        # !!!!! SABİT model="o4-mini" BURADA KULLANILDI !!!!!
+        response = client.responses.create(
+            model="o4-mini",  # Sabit olarak o4-mini, senin istediğin gibi
+            input=messages
+        )
+        logger.info("ChatGPT API response received: %s", datetime.now())
+        raw_response = response.output_text
+        logger.info("ChatGPT raw response: %s", raw_response)
+        # Fallback if response is irrelevant
+        if "sorry" in raw_response.lower() or "veri tabanımda" in raw_response.lower() or len(raw_response) < 10:
+            output_text = "Hmm, tam anlayamadım kanka! 😅 Az önce bi' espri veya hikaye mi kastediyorsun? Ne konuşalım?"
         else:
-            logger.error("ChatGPT API error: %s", response.text)
-            return "Sorry, I can't answer right now."
-    except Exception as e:
-        logger.error(f"ChatGPT API request failed: {e}")
-        return "Sorry, I can't answer right now."
+            output_text = raw_response
+        return Response(output_text=output_text)
+    except AttributeError as e:
+        logger.error(f"client.responses.create failed (method not found): %s", e)
+        return Response(output_text="Hmm, bir hata oldu kanka! 😅 Bi' daha dene, ne konuşalım?")
 
 def send_message(chat_id, text, reply_to_message_id=None, reply_markup=None, parse_mode="Markdown"):
     """Send message via Telegram API."""
