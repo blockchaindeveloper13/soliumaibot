@@ -7,17 +7,16 @@ from collections import defaultdict, deque
 import json
 import random
 from datetime import datetime
-try:
-    from apscheduler.schedulers.background import BackgroundScheduler
-    from cachetools import TTLCache
-except ImportError:
-    BackgroundScheduler = None
-    TTLCache = None
-    logging.warning("apscheduler or cachetools missing, automated messages disabled.")
+from apscheduler.schedulers.background import BackgroundScheduler
+from cachetools import TTLCache
+from openai import OpenAI
+from collections import namedtuple
+
+# Logging setup
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger()
 
 # Environment variables
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
@@ -26,6 +25,16 @@ OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 if not TELEGRAM_BOT_TOKEN or not OPENAI_API_KEY:
     logger.error("TELEGRAM_BOT_TOKEN or OPENAI_API_KEY missing!")
     raise ValueError("Required environment variables not set!")
+
+# Initialize OpenAI client
+try:
+    client = OpenAI(api_key=OPENAI_API_KEY)
+except Exception as e:
+    logger.error(f"Failed to initialize OpenAI client: {e}")
+    raise
+
+# Response namedtuple
+Response = namedtuple('Response', ['output_text'])
 
 # Violation Tracking System
 VIOLATIONS_FILE = "violations.json"
@@ -86,23 +95,6 @@ def save_conversations():
         logger.info("Conversation file saved.")
     except Exception as e:
         logger.warning(f"Failed to save conversation file: {e}")
-
-from openai import OpenAI
-from collections import namedtuple
-from datetime import datetime
-import logging
-
-# Initialize OpenAI client (global olarak tanımlı)
-client = OpenAI(api_key=OPENAI_API_KEY)
-
-# response.output_text benzeri yapı için namedtuple
-Response = namedtuple('Response', ['output_text'])
-
-# Logger setup (mevcut kodunuzdaki logger ile uyumlu)
-logger = logging.getLogger(__name__)
-
-# Mevcut conversations değişkenini varsayıyorum (önceki kodundan)
-conversations = {}  # Varsayılan olarak boş, gerçek kodunda tanımlı olmalı
 
 def ask_chatgpt(message, user_id=None):
     """Use OpenAI Responses API with o4-mini and optimized user conversation context."""
@@ -174,7 +166,7 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
             output_text = raw_response
         return Response(output_text=output_text)
     except AttributeError as e:
-        logger.error(f"client.responses.create failed (method not found): %s", e)
+        logger.error(f"client.responses.create failed (method not found): {e}")
         return Response(output_text="Hmm, bir hata oldu kanka! 😅 Bi' daha dene, ne konuşalım?")
 
 def send_message(chat_id, text, reply_to_message_id=None, reply_markup=None, parse_mode="Markdown"):
@@ -182,20 +174,20 @@ def send_message(chat_id, text, reply_to_message_id=None, reply_markup=None, par
     send_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": chat_id,
-        "text": text,
+        "text": text[:4096],  # Telegram mesaj limiti
         "parse_mode": parse_mode
     }
     if reply_to_message_id:
         payload["reply_to_message_id"] = reply_to_message_id
     if reply_markup:
-        payload["reply_markup"] = reply_markup
+        payload["reply_markup"] = json.dumps(reply_markup)
     try:
-        logger.info("Sending Telegram message: %s", text)
+        logger.info("Sending Telegram message: %s", text[:100])  # Uzun mesajları logda kısalt
         response = requests.post(send_url, json=payload)
         if response.status_code != 200:
             logger.error("Failed to send Telegram message: %s", response.text)
         else:
-            logger.info("Telegram message sent: %s", text)
+            logger.info("Telegram message sent: %s", text[:100])
         return response
     except Exception as e:
         logger.error(f"Failed to send Telegram message: {e}")
@@ -285,7 +277,7 @@ Message: '{}'
 """.format(text)
 
     logger.info("Starting rule violation check: %s", text)
-    response = ask_chatgpt(prompt)
+    response = ask_chatgpt(prompt).output_text
     logger.info("Rule violation check result: %s for %s", response, text)
     return "YES" in response.upper()
 
@@ -380,10 +372,13 @@ def process_callback_query(update):
         )
 
     # Notify Telegram that callback query was processed
-    requests.post(
-        f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery",
-        json={"callback_query_id": callback["id"]}
-    )
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery",
+            json={"callback_query_id": callback["id"]}
+        )
+    except Exception as e:
+        logger.error(f"Failed to answer callback query: {e}")
 
 def process_message(update):
     """Process incoming Telegram updates."""
@@ -486,11 +481,11 @@ More info: Ask me or join @SoliumCommunity! 😄"""
 
     if "😺" in text and ("rose" in text.lower() or "admin" in text.lower()):
         response = ask_chatgpt("User sent a cat emoji 😺. Suggest a fun, creative activity or idea based on this emoji.", user_id)
-        send_message(chat_id, response, reply_to_message_id=message_id)
+        send_message(chat_id, response.output_text, reply_to_message_id=message_id)
         return
     if any(word in text.lower() for word in ["phone", "knife", "water"]) and ("rose" in text.lower() or "admin" in text.lower()):
         response = ask_chatgpt(f"User chose {text} for a desert island challenge. Comment on their choices creatively!", user_id)
-        send_message(chat_id, response, reply_to_message_id=message_id)
+        send_message(chat_id, response.output_text, reply_to_message_id=message_id)
         return
 
     is_violation = check_rules_violation(text)
@@ -500,48 +495,52 @@ More info: Ask me or join @SoliumCommunity! 😄"""
 
     # Respond only if addressed as "Rose" or "Admin"
     if "rose" in text.lower() or "admin" in text.lower():
-        reply = ask_chatgpt(text, user_id)
-        send_message(chat_id, reply, reply_to_message_id=message_id)
+        context = "\n".join([f"{msg['timestamp']}: {msg['text']}" for msg in list(conversations[user_id])[-10:] if len(msg['text']) < 500])
+        logger.info("Sending to ChatGPT (o4-mini) with context (UserID:%s):\n%s\nCurrent message: %s", user_id, context, text)
+        response = ask_chatgpt(text, user_id)
+        send_message(chat_id, response.output_text, reply_to_message_id=message_id)
     else:
         logger.info("Message ignored (no 'Rose' or 'Admin' mention): UserID:%s, Text:%s", user_id, text)
 
 # Automated messages for channel
-if BackgroundScheduler and TTLCache:
-    CHANNEL_ID = "@SoliumCommunity"
-    message_cache = TTLCache(maxsize=100, ttl=86400)
+CHANNEL_ID = "@SoliumCommunity"
+message_cache = TTLCache(maxsize=100, ttl=86400)
 
-    def get_context():
-        return "Rewards in 2 days, presale 50% complete, staking coming soon."
+def get_context():
+    return "Rewards in 2 days, presale 50% complete, staking coming soon."
 
-    def send_rewards_reminder():
-        if "rewards_reminder" not in message_cache:
-            context = get_context()
-            message = ask_chatgpt(f"Remind the Solium Community Rewards in a witty way, encourage joining @SoliumCommunity. Context: {context}")
-            message_cache["rewards_reminder"] = message
-        send_message(CHANNEL_ID, message_cache["rewards_reminder"])
-        logger.info("Rewards reminder sent: %s", message_cache["rewards_reminder"])
+def send_rewards_reminder():
+    if "rewards_reminder" not in message_cache:
+        context = get_context()
+        message = ask_chatgpt(f"Remind the Solium Community Rewards in a witty way, encourage joining @SoliumCommunity. Context: {context}")
+        message_cache["rewards_reminder"] = message.output_text
+    send_message(CHANNEL_ID, message_cache["rewards_reminder"])
+    logger.info("Rewards reminder sent: %s", message_cache["rewards_reminder"])
 
-    def send_presale_update():
-        if "presale_update" not in message_cache:
-            context = get_context()
-            message = ask_chatgpt(f"Promote Solium presale or staking plans briefly and energetically. Note 1 BNB = 10,000 SLM. Context: {context}")
-            message_cache["presale_update"] = message
-        send_message(CHANNEL_ID, message_cache["presale_update"])
-        logger.info("Presale/staking update sent: %s", message_cache["presale_update"])
+def send_presale_update():
+    if "presale_update" not in message_cache:
+        context = get_context()
+        message = ask_chatgpt(f"Promote Solium presale or staking plans briefly and energetically. Note 1 BNB = 10,000 SLM. Context: {context}")
+        message_cache["presale_update"] = message.output_text
+    send_message(CHANNEL_ID, message_cache["presale_update"])
+    logger.info("Presale/staking update sent: %s", message_cache["presale_update"])
 
-    def send_trend_motivation():
-        if "trend_motivation" not in message_cache:
-            context = get_context()
-            message = ask_chatgpt(f"Summarize Solium trends on X in a witty way or motivate the community with Web3 spirit. Context: {context}")
-            message_cache["trend_motivation"] = message
-        send_message(CHANNEL_ID, message_cache["trend_motivation"])
-        logger.info("Trend/motivation message sent: %s", message_cache["trend_motivation"])
+def send_trend_motivation():
+    if "trend_motivation" not in message_cache:
+        context = get_context()
+        message = ask_chatgpt(f"Summarize Solium trends on X in a witty way or motivate the community with Web3 spirit. Context: {context}")
+        message_cache["trend_motivation"] = message.output_text
+    send_message(CHANNEL_ID, message_cache["trend_motivation"])
+    logger.info("Trend/motivation message sent: %s", message_cache["trend_motivation"])
 
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(send_rewards_reminder, 'cron', hour=9, minute=0)
-    scheduler.add_job(send_presale_update, 'cron', hour=13, minute=0)
-    scheduler.add_job(send_trend_motivation, 'cron', hour=20, minute=0)
+scheduler = BackgroundScheduler()
+scheduler.add_job(send_rewards_reminder, 'cron', hour=9, minute=0)
+scheduler.add_job(send_presale_update, 'cron', hour=13, minute=0)
+scheduler.add_job(send_trend_motivation, 'cron', hour=20, minute=0)
+try:
     scheduler.start()
+except Exception as e:
+    logger.error(f"Failed to start scheduler: {e}")
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -551,7 +550,7 @@ def webhook():
     try:
         process_message(update)
     except Exception as e:
-        logger.error(f"Webhook processing error: %e")
+        logger.error(f"Webhook processing error: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "ok"}), 200
 
@@ -563,4 +562,4 @@ def home():
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     logger.info("Bot running on port %s...", port)
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False)
