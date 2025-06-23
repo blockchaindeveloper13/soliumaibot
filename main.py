@@ -3,7 +3,7 @@ import os
 import logging
 import requests
 from flask import Flask, request, jsonify
-from collections import defaultdict
+from collections import defaultdict, deque
 import json
 import random
 from datetime import datetime
@@ -40,6 +40,21 @@ except FileNotFoundError:
 except Exception as e:
     logger.warning(f"Failed to load violation file, using default: {e}")
 
+# Conversation Tracking System (User Memory)
+CONVERSATIONS_FILE = "conversations.json"
+conversations = defaultdict(lambda: deque(maxlen=100))  # Max 100 messages per user
+
+try:
+    with open(CONVERSATIONS_FILE, "r") as f:
+        loaded_conversations = json.load(f)
+        for user_id, messages in loaded_conversations.items():
+            conversations[int(user_id)] = deque(messages, maxlen=100)
+    logger.info("Conversation file loaded.")
+except FileNotFoundError:
+    logger.info("Conversation file not found, will create new.")
+except Exception as e:
+    logger.warning(f"Failed to load conversation file, using default: {e}")
+
 # Solium whitelist links
 WHITELIST_LINKS = [
     "https://soliumcoin.com",
@@ -61,15 +76,24 @@ def save_violations():
             json.dump(dict(violations), f)
         logger.info("Violation file saved.")
     except Exception as e:
-        logger.warning(f"Failed to save violation file, temporary filesystem issue: {e}")
+        logger.warning(f"Failed to save violation file: {e}")
 
-def ask_chatgpt(message):
-    """Return response using OpenAI ChatGPT API."""
+def save_conversations():
+    """Save conversation data to file."""
+    try:
+        with open(CONVERSATIONS_FILE, "w") as f:
+            json.dump({user_id: list(messages) for user_id, messages in conversations.items()}, f)
+        logger.info("Conversation file saved.")
+    except Exception as e:
+        logger.warning(f"Failed to save conversation file: {e}")
+
+def ask_chatgpt(message, user_id=None):
+    """Return response using OpenAI ChatGPT API with user conversation context."""
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
         "Content-Type": "application/json"
     }
-    INTRODUCTION_MESSAGE = """You are a friendly AI assistant bot, primarily designed to answer questions about Solium but also capable of responding to *any* prompt users throw at you, from technical topics to fun, random curiosities. Your goal is to provide an exceptional user experience, keeping responses clear, engaging, and professional. Start in English, but switch to the user's language (e.g., Türkçe) if they use another one. All responses should go through the AI engine unless explicitly specified, to maintain the chatbot’s natural, prompt-driven nature. Follow these RULES:
+    INTRODUCTION_MESSAGE = """You are a friendly AI assistant bot named 'Rose' or 'Admin', primarily designed to answer questions about Solium but also capable of responding to *any* prompt users throw at you, from technical topics to fun, random curiosities. Your goal is to provide an exceptional user experience, keeping responses clear, engaging, and professional. Start in English, but switch to the user's language (e.g., Türkçe) if they use another one. Respond only when addressed as 'Rose' or 'Admin'. All responses should go through the AI engine unless explicitly specified. Follow these RULES:
 
 1. When user sends '/start', ALWAYS show this:
    'Hello! 🤖 I'm Solium Support AI, ready to chat about *anything* on your mind! 🚀 Ask about Solium (SLM), explore fun facts, or take a challenge! 😄'
@@ -81,45 +105,46 @@ def ask_chatgpt(message):
    - Text: 'Take a Challenge 🎯', callback_data: 'take_challenge'
    - Text: 'Join Community 💬', url: 'https://t.me/+KDhk3UEwZAg3MmU0'
 
-2. When providing info about Solium, use a neutral, informative tone, focusing on its Web3-based features like transparency, decentralization, staking, and DAO governance. Avoid speculative or investment-related claims (e.g., "guaranteed profits" or "revolutionary"). Always include the note '(Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)' when answering Solium-related questions. Example: 'Solium (SLM) is a Web3 project focused on transparency and community governance, offering features like staking and DAO. (Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)'
+2. When providing info about Solium, use a neutral, informative tone, focusing on its Web3-based features like transparency, decentralization, and DAO governance. Avoid speculative or investment-related claims. Always include: '(Solium is not available in some regions, including the USA.)'
 
-3. Encourage user interaction with prompts or inline buttons. Inline buttons should feel like a natural extension of the chatbot’s prompt-driven nature, not rigid commands, and should not bypass the AI engine unless necessary.
+3. Ensure responses are professional, avoid hashtags, excessive emojis, or aggressive promotional language.
 
-4. Ensure responses are professional, avoid hashtags (e.g., #Solium), excessive emojis, or aggressive promotional language.
-
-5. When user asks about Solium (e.g., 'What is Solium?'):
-   Include this note:
-   '(Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.)'
+4. When user asks about Solium (e.g., 'What is Solium?'):
+   Include this note: '(Solium is not available in some regions, including the USA.)'
 
 ### Basic Information:
-- Project: **Solium (SLM)**
-- Total Supply: 100,000,000 SLM
+- Project: **Solium (SLM))
+- Total Supply: 100,000,000, SLM
 - Presale: 50,000,000 SLM (50%)
 - Community Rewards: 10,000,000 SLM (10%)
 - Blockchain: Binance Smart Chain (BSC) and Solana
-- BSC Contract Address: Not publicly shared in bot responses
-- Solana Contract Address: Not publicly shared in bot responses
 
 ### Tokenomics:
 - Presale: 50M SLM (50%)
 - Liquidity: 20M SLM (20%)
 - Community Rewards: 10M SLM (10%)
 - Staking: 10M SLM (10%)
-- GameFi & Rewards: 10M SLM (10%)
+- GameFi & Rewards: 10M SLM10%()
 
 ### Main Features:
-- 100% Fair Launch – No team tokens, no dev fees, no private sale.
+- 100% Fair Launch - No team tokens, no dev fees, no private sale.
 - Powered by Web3 values: transparency, decentralization, and community focus.
 - Staking, DAO governance, GameFi expansion, and cross-chain bridge planned.
-- Solium is not available to residents of the USA, Canada, or OFAC-sanctioned countries.
+- Solium is not available to residents of the USA.
 
-Your role is to assist users, act as a group moderator, and provide clear, trust-building responses. Always be honest, informative, and remind users that this is not financial advice and that Solium is not available for sale to Americans or Canadians."""
+Your role is to assist users, act as a group moderator, and provide clear, trust-building responses. Always be honest, informative, and remind users that this is not financial advice and that Solium is not available for sale to Americans."""
+    messages = [{"role": "system", "content": INTRODUCTION_MESSAGE}]
+    
+    # Add user conversation context if user_id is provided
+    if user_id and user_id in conversations:
+        context = "\n".join([f"{msg['timestamp']}: {msg['text']}" for msg in conversations[user_id]])
+        messages.append({"role": "system", "content": f"User's previous messages (last 100):\n{context}"})
+    
+    messages.append({"role": "user", "content": message})
+    
     data = {
         "model": "gpt-3.5-turbo",
-        "messages": [
-            {"role": "system", "content": INTRODUCTION_MESSAGE},
-            {"role": "user", "content": message}
-        ]
+        "messages": messages
     }
     try:
         logger.info("ChatGPT API request sent: %s", datetime.now())
@@ -299,7 +324,7 @@ def process_callback_query(update):
         }
         send_message(
             chat_id,
-            "Solium (SLM) is a Web3 project focused on transparency and community governance, offering features like staking and DAO. 😊 (Solium is not available in some regions, including the USA, Canada, and OFAC-sanctioned countries.) What else are you curious about?",
+            "Solium (SLM) is a Web3 project focused on transparency and community governance, offering features like staking and DAO. 😊 (Solium is not available in some regions, including the USA.)",
             reply_to_message_id=message_id,
             reply_markup=reply_markup
         )
@@ -356,6 +381,14 @@ def process_message(update):
     chat_id = message.get("chat", {}).get("id")
     user_id = message.get("from", {}).get("id")
     message_id = message.get("message_id")
+    text = message.get("text", "")
+
+    # Save message to conversation history
+    if text:
+        timestamp = datetime.now().isoformat()
+        conversations[user_id].append({"text": text, "timestamp": timestamp})
+        save_conversations()
+        logger.info("Message saved for UserID:%s: %s", user_id, text)
 
     if "new_chat_members" in message:
         welcome = """Welcome to the Solium group! 🚀 
@@ -366,7 +399,6 @@ Got questions? Ask away! 😎"""
         logger.info("New member welcome message sent: UserID:%s", user_id)
         return
 
-    text = message.get("text", "")
     if not text:
         logger.info("Empty or non-text message, violation check skipped: UserID:%s", user_id)
         return
@@ -415,6 +447,15 @@ More info: Ask me or join @SoliumCommunity! 😄"""
         send_message(chat_id, airdrop_info, reply_to_message_id=message_id)
         return
 
+    if text.lower() == "/clearmemory":
+        if user_id in conversations:
+            conversations[user_id].clear()
+            save_conversations()
+            send_message(chat_id, "Your conversation history has been cleared.", reply_to_message_id=message_id)
+        else:
+            send_message(chat_id, "No conversation history found.", reply_to_message_id=message_id)
+        return
+
     if text.lower().startswith("/resetviolations") and is_user_admin(chat_id, user_id):
         try:
             target_user_id = int(text.split()[1])
@@ -425,12 +466,12 @@ More info: Ask me or join @SoliumCommunity! 😄"""
             send_message(chat_id, "Usage: /resetviolations <user_id>", reply_to_message_id=message_id)
         return
 
-    if "😺" in text:
-        response = ask_chatgpt("User sent a cat emoji 😺. Suggest a fun, creative activity or idea based on this emoji.")
+    if "😺" in text and ("rose" in text.lower() or "admin" in text.lower()):
+        response = ask_chatgpt("User sent a cat emoji 😺. Suggest a fun, creative activity or idea based on this emoji.", user_id)
         send_message(chat_id, response, reply_to_message_id=message_id)
         return
-    if any(word in text.lower() for word in ["phone", "knife", "water"]):
-        response = ask_chatgpt(f"User chose {text} for a desert island challenge. Comment on their choices creatively!")
+    if any(word in text.lower() for word in ["phone", "knife", "water"]) and ("rose" in text.lower() or "admin" in text.lower()):
+        response = ask_chatgpt(f"User chose {text} for a desert island challenge. Comment on their choices creatively!", user_id)
         send_message(chat_id, response, reply_to_message_id=message_id)
         return
 
@@ -439,8 +480,12 @@ More info: Ask me or join @SoliumCommunity! 😄"""
         handle_violation(chat_id, user_id, message_id)
         return
 
-    reply = ask_chatgpt(text)
-    send_message(chat_id, reply, reply_to_message_id=message_id)
+    # Respond only if addressed as "Rose" or "Admin"
+    if "rose" in text.lower() or "admin" in text.lower():
+        reply = ask_chatgpt(text, user_id)
+        send_message(chat_id, reply, reply_to_message_id=message_id)
+    else:
+        logger.info("Message ignored (no 'Rose' or 'Admin' mention): UserID:%s, Text:%s", user_id, text)
 
 # Automated messages for channel
 if BackgroundScheduler and TTLCache:
@@ -488,7 +533,7 @@ def webhook():
     try:
         process_message(update)
     except Exception as e:
-        logger.error(f"Webhook processing error: {e}")
+        logger.error(f"Webhook processing error: %e")
         return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "ok"}), 200
 
