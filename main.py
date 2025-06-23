@@ -14,6 +14,8 @@ from collections import namedtuple
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+logger.info("Starting application initialization...")
+
 app = Flask(__name__)
 
 # Environment variables
@@ -51,11 +53,11 @@ WHITELIST_LINKS = [
     "@soliumcoinowner",
     "@soliumcoin",
     "https://t.me/+KDhk3UEwZAg3MmU0",
-    "t.me/soliummain",
-    "https://x.com/soliummain",
-    "https://github.com/soliummain/solium-project",
-    "https://github.com/soliummain",
-    "https://medium.com/@soliummain"
+    "t.me/soliumcoin",
+    "https://x.com/soliumcoin",
+    "https://github.com/soliumcoin/solium-project",
+    "https://github.com/soliumcoin",
+    "https://medium.com/@soliumcoin"
 ]
 
 def ask_chatgpt(message, user_id=None):
@@ -115,7 +117,7 @@ Your role is to assist users, act as a group moderator, and provide clear, trust
         logger.info("ChatGPT (gpt-4o-mini) prompt context (UserID:%s): %s", user_id, context if user_id in conversations else "No context")
         logger.info("ChatGPT current message: %s", message)
         response = client.chat.completions.create(
-            model="gpt-4o-mini",  # Senin son talebine uygun
+            model="gpt-4o-mini",
             messages=messages
         )
         logger.info("ChatGPT API response received: %s", datetime.now())
@@ -203,7 +205,7 @@ def delete_message(chat_id, message_id):
         else:
             logger.warning("Failed to delete message: %s", response.text)
     except Exception as e:
-        logger.warning(f"Failed to delete message: {e}")
+        logger.warning(f"Failed to delete message: %e")
 
 def check_rules_violation(text):
     """Check for rule violations using ChatGPT, excluding whitelisted links."""
@@ -224,7 +226,7 @@ def check_rules_violation(text):
 
     prompt = """Does the following message violate these rules? (Write only YES/NO):
 Rules:
-1. External links other than official Solium links (e.g., https://soliummain.com, https://t.me/+KDhk3UEwZAg3MmU0) are prohibited.
+1. External links other than official Solium links (e.g., https://soliumcoin.com, https://t.me/+KDhk3UEwZAg3MmU0) are prohibited.
 2. Promoting cryptocurrencies or projects other than Solium is prohibited (e.g., 'Buy Bitcoin', 'Ethereum is great').
 3. Profanity, insults, or inappropriate language are prohibited (e.g., 'stupid', 'damn', 'fuck').
 4. Empty messages, system notifications, group join events, or casual greetings (e.g., 'nasılsın', 'merhaba') are NOT violations.
@@ -253,7 +255,7 @@ def handle_violation(chat_id, user_id, message_id):
     violations[user_id] += 1
 
     if violations[user_id] >= 3:
-        text_to_send = "⛔ User banned after 3 violations! Contact @soliummain for support."
+        text_to_send = "⛔ User banned after 3 violations! Contact @soliumcoin for support."
         logger.info("Banning user: UserID:%s, ChatID:%s", user_id, chat_id)
         send_message(chat_id, text_to_send, reply_to_message_id=message_id)
         ban_user(chat_id, user_id)
@@ -338,7 +340,7 @@ def process_callback_query(update):
             json={"callback_query_id": callback["id"]}
         )
     except Exception as e:
-        logger.error(f"Failed to answer callback query: {e}")
+        logger.error(f"Failed to answer callback query: %e")
 
 def process_message(update):
     """Process incoming Telegram updates."""
@@ -467,7 +469,7 @@ def webhook():
     try:
         process_message(update)
     except Exception as e:
-        logger.error(f"Webhook processing error: {e}")
+        logger.error(f"Webhook processing error: %e")
         return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "ok"}), 200
 
@@ -480,3 +482,5 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     logger.info("Bot running on port %s...", port)
     app.run(host='0.0.0.0', port=port, debug=False)
+
+logger.info("Application initialization completed.")
