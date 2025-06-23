@@ -29,6 +29,7 @@ if not TELEGRAM_BOT_TOKEN or not OPENAI_API_KEY:
 # Initialize OpenAI client
 try:
     client = OpenAI(api_key=OPENAI_API_KEY)
+    logger.info("OpenAI client initialized successfully.")
 except Exception as e:
     logger.error(f"Failed to initialize OpenAI client: {e}")
     raise
@@ -37,7 +38,7 @@ except Exception as e:
 Response = namedtuple('Response', ['output_text'])
 
 # Violation Tracking System
-VIOLATIONS_FILE = "violations.json"
+VIOLATIONS_FILE = "/tmp/violations.json"  # Heroku'da geçici dosya sistemi
 violations = defaultdict(int)
 
 try:
@@ -50,7 +51,7 @@ except Exception as e:
     logger.warning(f"Failed to load violation file, using default: {e}")
 
 # Conversation Tracking System (User Memory)
-CONVERSATIONS_FILE = "conversations.json"
+CONVERSATIONS_FILE = "/tmp/conversations.json"  # Heroku'da geçici dosya sistemi
 conversations = defaultdict(lambda: deque(maxlen=100))  # Max 100 messages per user
 
 try:
@@ -182,7 +183,7 @@ def send_message(chat_id, text, reply_to_message_id=None, reply_markup=None, par
     if reply_markup:
         payload["reply_markup"] = json.dumps(reply_markup)
     try:
-        logger.info("Sending Telegram message: %s", text[:100])  # Uzun mesajları logda kısalt
+        logger.info("Sending Telegram message: %s", text[:100])
         response = requests.post(send_url, json=payload)
         if response.status_code != 200:
             logger.error("Failed to send Telegram message: %s", response.text)
@@ -533,12 +534,13 @@ def send_trend_motivation():
     send_message(CHANNEL_ID, message_cache["trend_motivation"])
     logger.info("Trend/motivation message sent: %s", message_cache["trend_motivation"])
 
-scheduler = BackgroundScheduler()
-scheduler.add_job(send_rewards_reminder, 'cron', hour=9, minute=0)
-scheduler.add_job(send_presale_update, 'cron', hour=13, minute=0)
-scheduler.add_job(send_trend_motivation, 'cron', hour=20, minute=0)
 try:
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(send_rewards_reminder, 'cron', hour=9, minute=0)
+    scheduler.add_job(send_presale_update, 'cron', hour=13, minute=0)
+    scheduler.add_job(send_trend_motivation, 'cron', hour=20, minute=0)
     scheduler.start()
+    logger.info("Scheduler started successfully.")
 except Exception as e:
     logger.error(f"Failed to start scheduler: {e}")
 
