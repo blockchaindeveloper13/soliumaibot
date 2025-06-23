@@ -53,7 +53,7 @@ WHITELIST_LINKS = [
     "@soliumcoinowner",
     "@soliumcoin",
     "https://t.me/+KDhk3UEwZAg3MmU0",
-    "t.me/soliumcoin",
+    "t.me/solium",
     "https://x.com/soliumcoin",
     "https://github.com/soliumcoin/solium-project",
     "https://github.com/soliumcoin",
